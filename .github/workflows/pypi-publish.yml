@@ -32,7 +32,7 @@ jobs:
           pip install poetry
       - name: Test Package
         run: |
-          poetry install --with test
+          poetry install --with dev
           poetry run pytest tests/
       - name: Build Package
         run: poetry build
