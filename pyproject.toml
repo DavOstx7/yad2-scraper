@@ -12,7 +12,7 @@ httpx = "^0.24.0"
 fake-useragent = "^0.1.11"
 beautifulsoup4 = "^4.11.1"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^6.2.2"
 respx = "^0.15.0"
 
