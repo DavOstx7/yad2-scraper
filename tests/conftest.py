@@ -2,7 +2,7 @@ import pytest
 import httpx
 import respx
 
-from yad2_scraper.scraper import Yad2Scraper
+from yad2_scraper import Yad2Scraper
 
 
 @pytest.fixture
