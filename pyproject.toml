@@ -9,12 +9,14 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.7"
 httpx = "^0.24.0"
+httpcore = ">=0.15.0"
 fake-useragent = "^0.1.11"
 beautifulsoup4 = "^4.11.1"
+pydantic = "^1.10.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^6.2.2"
-respx = "^0.15.0"
+respx = "^0.20.0"
 
 [build-system]
 requires = ["poetry-core"]
