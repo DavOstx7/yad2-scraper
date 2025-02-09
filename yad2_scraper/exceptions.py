@@ -1,0 +1,2 @@
+class AntiBotDetectedError(Exception):
+    pass
