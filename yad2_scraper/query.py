@@ -30,16 +30,17 @@ class QueryFilters(BaseModel):
     price_range: Optional[PriceRange] = None
     ...
 
-    def to_dict_raw(self) -> dict:
+    def to_params(self) -> dict:
         return {
             "page": self.page,
             "Order": self.order_by,
             "price": format_number_range(self.price_range)
         }
 
+    def to_clean_params(self):
+        return {key: value for key, value in self.to_params().items() if value is not None}
+
     # TODO: add helper methods for managing the attribute values
 
     def __iter__(self):
-        for key, value in self.to_dict_raw().items():
-            if value is not None:
-                yield key, value
+        yield from self.to_clean_params().items()
