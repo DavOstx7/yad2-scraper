@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "yad2-scraper"
+version = "0.1.0"
+description = "Scrape Yad2 in Python."
+authors = ["dav ost <davidost2003@gmail.com>"]
+license = "LICENSE"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.7"
+httpx = "^0.24.0"
+fake-useragent = "^0.1.11"
+beautifulsoup4 = "^4.11.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.2"
+respx = "^0.15.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
