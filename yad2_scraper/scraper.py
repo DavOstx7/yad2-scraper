@@ -44,7 +44,7 @@ class Yad2Scraper:
         logger.debug(f"User-Agent session header set to: '{user_agent}'")
 
     def set_no_script(self, no_script: bool):
-        value = '1' if no_script else '0'  # str(int(no_script))
+        value = "1" if no_script else "0"  # str(int(no_script))
         self.session.cookies.set("noscript", value)
         logger.debug(f"NoScript session cookie set to: '{value}'")
 
