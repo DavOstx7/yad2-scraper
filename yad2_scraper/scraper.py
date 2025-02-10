@@ -24,20 +24,20 @@ class Yad2Scraper:
     def __init__(
             self,
             session: Optional[httpx.Client] = None,
-            request_kwargs: Dict[str, Any] = None,
+            default_request_kwargs: Dict[str, Any] = None,
             randomize_user_agent: bool = False,
-            requests_delay_range: Optional[DelayRange] = None,
+            random_delay_range: Optional[DelayRange] = None,
     ):
         self.session = session or httpx.Client(
             headers=DEFAULT_REQUEST_HEADERS,
             follow_redirects=ALLOW_REQUEST_REDIRECTS,
             verify=VERIFY_REQUEST_SSL
         )
-        self.request_kwargs = request_kwargs or {}
+        self.default_request_kwargs = default_request_kwargs or {}
         self.randomize_user_agent = randomize_user_agent
-        self.requests_delay_range = requests_delay_range
+        self.random_delay_range = random_delay_range
 
-        logger.debug(f"Initialized with session {self.session} and request kwargs: {self.request_kwargs}")
+        logger.debug(f"Scraper initialized with session: {self.session}")
 
     def set_user_agent(self, user_agent: str):
         self.session.headers["User-Agent"] = user_agent
@@ -46,7 +46,7 @@ class Yad2Scraper:
     def set_no_script(self, no_script: bool):
         value = "1" if no_script else "0"  # str(int(no_script))
         self.session.cookies.set("noscript", value)
-        logger.debug(f"NoScript session cookie set to: '{value}'")
+        logger.debug(f"noscript session cookie set to: '{value}'")
 
     def fetch_category(
             self,
@@ -63,10 +63,10 @@ class Yad2Scraper:
         return self.request("GET", url, query_params=query_params)
 
     def request(self, method: str, url: str, query_params: Optional[QueryParams] = None) -> httpx.Response:
-        request_kwargs = self._prepare_request_kwargs(query_params=query_params)
+        request_kwargs = self.prepare_request_kwargs(query_params=query_params)
 
-        if self.requests_delay_range:
-            self._apply_request_delay()
+        if self.random_delay_range:
+            self.apply_random_delay()
 
         try:
             logger.info(f"Making {method} request to URL: '{url}'")  # request kwargs not logged - may be sensitive
@@ -81,9 +81,9 @@ class Yad2Scraper:
 
         return response
 
-    def _prepare_request_kwargs(self, query_params: Optional[QueryParams] = None) -> Dict[str, Any]:
+    def prepare_request_kwargs(self, query_params: Optional[QueryParams] = None) -> Dict[str, Any]:
         logger.debug("Preparing request kwargs from defaults")
-        request_kwargs = self.request_kwargs.copy()
+        request_kwargs = self.default_request_kwargs.copy()
 
         if query_params:
             request_kwargs.setdefault("params", {}).update(query_params)
@@ -92,12 +92,12 @@ class Yad2Scraper:
         if self.randomize_user_agent:
             random_user_agent = get_random_user_agent()
             request_kwargs.setdefault("headers", {})["User-Agent"] = random_user_agent
-            logger.debug(f"Updated request kwargs with random 'User-Agent' header: '{random_user_agent}'")
+            logger.debug(f"Updated request kwargs with random User-Agent header: '{random_user_agent}'")
 
         return request_kwargs
 
-    def _apply_request_delay(self):
-        delay = random.uniform(*self.requests_delay_range)
+    def apply_random_delay(self):
+        delay = random.uniform(*self.random_delay_range)
         logger.debug(f"Applying request delay of {delay:.2f} seconds")
         time.sleep(delay)
 
