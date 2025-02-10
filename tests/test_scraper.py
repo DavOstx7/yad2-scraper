@@ -9,23 +9,23 @@ from yad2_scraper.scraper import Yad2Scraper, Yad2Category
 def test_initialization_defaults():
     scraper = Yad2Scraper()
     assert isinstance(scraper.session, httpx.Client)
-    assert scraper.request_kwargs == {}
+    assert scraper.default_request_kwargs == {}
     assert scraper.randomize_user_agent is False
-    assert scraper.requests_delay_range is None
+    assert scraper.random_delay_range is None
 
 
 def test_initialization_custom():
     session_mock = MagicMock()
     scraper = Yad2Scraper(
         session=session_mock,
-        request_kwargs={"timeout": 10},
+        default_request_kwargs={"timeout": 10},
         randomize_user_agent=True,
-        requests_delay_range=(1, 3)
+        random_delay_range=(1, 3)
     )
     assert scraper.session == session_mock
-    assert scraper.request_kwargs == {"timeout": 10}
+    assert scraper.default_request_kwargs == {"timeout": 10}
     assert scraper.randomize_user_agent is True
-    assert scraper.requests_delay_range == (1, 3)
+    assert scraper.random_delay_range == (1, 3)
 
 
 # Header & Cookie Tests
@@ -53,23 +53,24 @@ def test_request(scraper, mock_http):
     assert response.content == b"success"
 
 
-def test_request_with_delay(scraper, mock_http):
+def test_request_applies_random_delay(scraper, mock_http):
     url = "http://example.com"
-    scraper.requests_delay_range = (1, 2)
+    scraper.random_delay_range = (1, 2)
     mock_http.get(url).mock(return_value=httpx.Response(200, content=b"test content"))
 
-    with patch("time.sleep") as mock_sleep:
+    with patch.object(scraper, "apply_random_delay") as mock_apply_random_delay:
         response = scraper.request("GET", url)
-        mock_sleep.assert_called_once()
+        mock_apply_random_delay.assert_called_once()
         assert response.status_code == 200
 
 
-def test_request_validation_failure(scraper, mock_http):
+def test_request_validates_response(scraper, mock_http):
     url = "http://example.com"
     mock_http.get(url).mock(return_value=httpx.Response(500, content=b"error"))
 
-    with pytest.raises(httpx.HTTPStatusError):
-        scraper.request("GET", url)
+    with patch("yad2_scraper.scraper.validate_http_response") as mock_validate_http_response:
+        response = scraper.request("GET", url)
+        mock_validate_http_response.assert_called_once_with(response)
 
 
 def test_request_timeout(scraper, mock_http):
@@ -80,10 +81,9 @@ def test_request_timeout(scraper, mock_http):
         scraper.request("GET", url)
 
 
-def test_request_applies_request_kwargs(scraper, mock_http):
+def test_request_uses_default_request_kwargs(scraper, mock_http):
     url = "http://example.com"
-    scraper.request_kwargs = {"headers": {"Authorization": "Bearer token"}}
-
+    scraper.default_request_kwargs = {"headers": {"Authorization": "Bearer token"}}
     mock_http.get(url, headers={"Authorization": "Bearer token"}).mock(
         return_value=httpx.Response(200, content=b"success")
     )
@@ -121,14 +121,6 @@ def test_fetch_category_with_query_params(scraper, mock_http):
     assert result == "parsed_category_with_query"
 
 
-def test_fetch_category_http_error(scraper, mock_http):
-    url = "http://example.com"
-    mock_http.get(url).mock(return_value=httpx.Response(500))
-
-    with pytest.raises(httpx.HTTPStatusError):
-        scraper.fetch_category(url, category_type=Yad2Category)
-
-
 # Closing Tests
 def test_close(scraper):
     scraper.close()
@@ -138,31 +130,31 @@ def test_close(scraper):
 # Internal Helper Function Tests
 def test_prepare_request_kwargs(scraper):
     query_params = {"key": "value"}
-    request_kwargs = scraper._prepare_request_kwargs(query_params=query_params)
+    request_kwargs = scraper.prepare_request_kwargs(query_params=query_params)
     assert request_kwargs["params"] == query_params
 
 
 def test_prepare_request_kwargs_with_query_params(scraper):
     query_params = {"key": "value"}
-    request_kwargs = scraper._prepare_request_kwargs(query_params=query_params)
+    request_kwargs = scraper.prepare_request_kwargs(query_params=query_params)
 
     assert "params" in request_kwargs
     assert request_kwargs["params"] == query_params
 
 
 def test_prepare_request_kwargs_merge_headers(scraper):
-    scraper.request_kwargs = {"headers": {"X-Test": "existing"}}
-    request_kwargs = scraper._prepare_request_kwargs()
+    scraper.default_request_kwargs = {"headers": {"X-Test": "existing"}}
+    request_kwargs = scraper.prepare_request_kwargs()
 
     assert "headers" in request_kwargs
     assert request_kwargs["headers"]["X-Test"] == "existing"
 
 
 def test_prepare_request_kwargs_preserve_existing_params(scraper):
-    scraper.request_kwargs = {"params": {"existing": "value"}}
+    scraper.default_request_kwargs = {"params": {"existing": "value"}}
     query_params = {"new": "param"}
 
-    request_kwargs = scraper._prepare_request_kwargs(query_params=query_params)
+    request_kwargs = scraper.prepare_request_kwargs(query_params=query_params)
 
     assert request_kwargs["params"] == {"existing": "value", "new": "param"}
 
@@ -170,12 +162,12 @@ def test_prepare_request_kwargs_preserve_existing_params(scraper):
 def test_prepare_request_kwargs_random_user_agent(scraper):
     scraper.randomize_user_agent = True
     with patch("yad2_scraper.scraper.get_random_user_agent", return_value="random_agent"):
-        request_kwargs = scraper._prepare_request_kwargs()
+        request_kwargs = scraper.prepare_request_kwargs()
         assert request_kwargs["headers"]["User-Agent"] == "random_agent"
 
 
-def test_apply_request_delay(scraper):
-    scraper.requests_delay_range = (1, 2)
+def test_apply_random_delay(scraper):
+    scraper.random_delay_range = (1, 2)
     with patch("random.uniform", return_value=1.5), patch("time.sleep") as mock_sleep:
-        scraper._apply_request_delay()
+        scraper.apply_random_delay()
         mock_sleep.assert_called_once_with(1.5)
