@@ -24,7 +24,7 @@ class Yad2Scraper:
     def __init__(
             self,
             session: Optional[httpx.Client] = None,
-            default_request_kwargs: Dict[str, Any] = None,
+            request_defaults: Dict[str, Any] = None,
             randomize_user_agent: bool = False,
             random_delay_range: Optional[DelayRange] = None,
     ):
@@ -33,7 +33,7 @@ class Yad2Scraper:
             follow_redirects=ALLOW_REQUEST_REDIRECTS,
             verify=VERIFY_REQUEST_SSL
         )
-        self.default_request_kwargs = default_request_kwargs or {}
+        self.request_defaults = request_defaults or {}
         self.randomize_user_agent = randomize_user_agent
         self.random_delay_range = random_delay_range
 
@@ -63,14 +63,14 @@ class Yad2Scraper:
         return self.request("GET", url, query_params=query_params)
 
     def request(self, method: str, url: str, query_params: Optional[QueryParams] = None) -> httpx.Response:
-        request_kwargs = self.prepare_request_kwargs(query_params=query_params)
+        request_options = self.prepare_request_options(query_params=query_params)
 
         if self.random_delay_range:
             self.apply_random_delay()
 
         try:
-            logger.info(f"Making {method} request to URL: '{url}'")  # request kwargs not logged - may be sensitive
-            response = self.session.request(method, url, **request_kwargs)
+            logger.info(f"Making {method} request to URL: '{url}'")  # request options not logged - may be sensitive
+            response = self.session.request(method, url, **request_options)
             logger.debug(f"Received response with status code: {response.status_code}")
 
             validate_http_response(response)
@@ -81,20 +81,20 @@ class Yad2Scraper:
 
         return response
 
-    def prepare_request_kwargs(self, query_params: Optional[QueryParams] = None) -> Dict[str, Any]:
-        logger.debug("Preparing request kwargs from defaults")
-        request_kwargs = self.default_request_kwargs.copy()
+    def prepare_request_options(self, query_params: Optional[QueryParams] = None) -> Dict[str, Any]:
+        logger.debug("Preparing request options from defaults")
+        request_options = self.request_defaults.copy()
 
         if query_params:
-            request_kwargs.setdefault("params", {}).update(query_params)
-            logger.debug(f"Updated request kwargs with query params: {query_params}")
+            request_options.setdefault("params", {}).update(query_params)
+            logger.debug(f"Updated request options with query params: {query_params}")
 
         if self.randomize_user_agent:
             random_user_agent = get_random_user_agent()
-            request_kwargs.setdefault("headers", {})["User-Agent"] = random_user_agent
-            logger.debug(f"Updated request kwargs with random User-Agent header: '{random_user_agent}'")
+            request_options.setdefault("headers", {})["User-Agent"] = random_user_agent
+            logger.debug(f"Updated request options with random User-Agent header: '{random_user_agent}'")
 
-        return request_kwargs
+        return request_options
 
     def apply_random_delay(self):
         delay = random.uniform(*self.random_delay_range)

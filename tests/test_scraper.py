@@ -9,7 +9,7 @@ from yad2_scraper.scraper import Yad2Scraper, Yad2Category
 def test_initialization_defaults():
     scraper = Yad2Scraper()
     assert isinstance(scraper.session, httpx.Client)
-    assert scraper.default_request_kwargs == {}
+    assert scraper.request_defaults == {}
     assert scraper.randomize_user_agent is False
     assert scraper.random_delay_range is None
 
@@ -18,12 +18,12 @@ def test_initialization_custom():
     session_mock = MagicMock()
     scraper = Yad2Scraper(
         session=session_mock,
-        default_request_kwargs={"timeout": 10},
+        request_defaults={"timeout": 10},
         randomize_user_agent=True,
         random_delay_range=(1, 3)
     )
     assert scraper.session == session_mock
-    assert scraper.default_request_kwargs == {"timeout": 10}
+    assert scraper.request_defaults == {"timeout": 10}
     assert scraper.randomize_user_agent is True
     assert scraper.random_delay_range == (1, 3)
 
@@ -81,9 +81,9 @@ def test_request_timeout(scraper, mock_http):
         scraper.request("GET", url)
 
 
-def test_request_uses_default_request_kwargs(scraper, mock_http):
+def test_request_uses_default_request_options(scraper, mock_http):
     url = "http://example.com"
-    scraper.default_request_kwargs = {"headers": {"Authorization": "Bearer token"}}
+    scraper.request_defaults = {"headers": {"Authorization": "Bearer token"}}
     mock_http.get(url, headers={"Authorization": "Bearer token"}).mock(
         return_value=httpx.Response(200, content=b"success")
     )
@@ -128,42 +128,42 @@ def test_close(scraper):
 
 
 # Internal Helper Function Tests
-def test_prepare_request_kwargs(scraper):
+def test_prepare_request_options(scraper):
     query_params = {"key": "value"}
-    request_kwargs = scraper.prepare_request_kwargs(query_params=query_params)
-    assert request_kwargs["params"] == query_params
+    request_options = scraper.prepare_request_options(query_params=query_params)
+    assert request_options["params"] == query_params
 
 
-def test_prepare_request_kwargs_with_query_params(scraper):
+def test_prepare_request_options_with_query_params(scraper):
     query_params = {"key": "value"}
-    request_kwargs = scraper.prepare_request_kwargs(query_params=query_params)
+    request_options = scraper.prepare_request_options(query_params=query_params)
 
-    assert "params" in request_kwargs
-    assert request_kwargs["params"] == query_params
-
-
-def test_prepare_request_kwargs_merge_headers(scraper):
-    scraper.default_request_kwargs = {"headers": {"X-Test": "existing"}}
-    request_kwargs = scraper.prepare_request_kwargs()
-
-    assert "headers" in request_kwargs
-    assert request_kwargs["headers"]["X-Test"] == "existing"
+    assert "params" in request_options
+    assert request_options["params"] == query_params
 
 
-def test_prepare_request_kwargs_preserve_existing_params(scraper):
-    scraper.default_request_kwargs = {"params": {"existing": "value"}}
+def test_prepare_request_options_merge_headers(scraper):
+    scraper.request_defaults = {"headers": {"X-Test": "existing"}}
+    request_options = scraper.prepare_request_options()
+
+    assert "headers" in request_options
+    assert request_options["headers"]["X-Test"] == "existing"
+
+
+def test_prepare_request_options_preserve_existing_options(scraper):
+    scraper.request_defaults = {"params": {"existing": "value"}}
     query_params = {"new": "param"}
 
-    request_kwargs = scraper.prepare_request_kwargs(query_params=query_params)
+    request_options = scraper.prepare_request_options(query_params=query_params)
 
-    assert request_kwargs["params"] == {"existing": "value", "new": "param"}
+    assert request_options["params"] == {"existing": "value", "new": "param"}
 
 
-def test_prepare_request_kwargs_random_user_agent(scraper):
+def test_prepare_request_options_random_user_agent(scraper):
     scraper.randomize_user_agent = True
     with patch("yad2_scraper.scraper.get_random_user_agent", return_value="random_agent"):
-        request_kwargs = scraper.prepare_request_kwargs()
-        assert request_kwargs["headers"]["User-Agent"] == "random_agent"
+        request_options = scraper.prepare_request_options()
+        assert request_options["headers"]["User-Agent"] == "random_agent"
 
 
 def test_apply_random_delay(scraper):
