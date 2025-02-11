@@ -132,24 +132,24 @@ def test_fetch_category(scraper, mock_http):
     assert result == "parsed_category"
 
 
-def test_set_client_user_agent(scraper):
+def test_client_user_agent(scraper):
     user_agent = "test_agent"
     scraper.set_user_agent(user_agent)
     assert scraper.client.headers["User-Agent"] == user_agent
 
 
-def test_set_client_no_script(scraper):
+def test_client_no_script(scraper):
     scraper.set_no_script(True)
     assert scraper.client.cookies["noscript"] == "1"
     scraper.set_no_script(False)
     assert scraper.client.cookies["noscript"] == "0"
 
 
-def test_close_client(scraper):
+def test_client(scraper):
     scraper.close()
     assert scraper.client.is_closed
 
 
-def test_scraper_context_manager(scraper):
+def test_context_manager(scraper):
     with scraper:
         pass
