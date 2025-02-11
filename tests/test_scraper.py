@@ -24,7 +24,7 @@ def _create_success_response() -> httpx.Response:
     return httpx.Response(status_code=200, content=YAD2_CONTENT_IDENTIFIER)
 
 
-def _assert_expected_success_response(response: httpx.Response):
+def _assert_success_response(response: httpx.Response):
     assert response.status_code == 200
     assert response.content == YAD2_CONTENT_IDENTIFIER
 
@@ -35,7 +35,7 @@ def test_get_request(scraper, mock_http):
 
     response = scraper.get(url)
 
-    _assert_expected_success_response(response)
+    _assert_success_response(response)
 
 
 def test_get_request_with_params(scraper, mock_http):
@@ -45,7 +45,7 @@ def test_get_request_with_params(scraper, mock_http):
 
     response = scraper.get(url, params=params)
 
-    _assert_expected_success_response(response)
+    _assert_success_response(response)
     assert b"key=value" in response.request.url.query
 
 
@@ -57,7 +57,7 @@ def test_get_request_with_random_user_agent(scraper, mock_http):
         mock_http.get(url).return_value = _create_success_response()
         response = scraper.get(url)
 
-    _assert_expected_success_response(response)
+    _assert_success_response(response)
     assert response.request.headers["User-Agent"] == "RandomUserAgent/1.0"
 
 
@@ -70,7 +70,7 @@ def test_get_request_with_delay(scraper, mock_http):
         response = scraper.get(url)
         mock_sleep.assert_called_once_with(1.5)
 
-    _assert_expected_success_response(response)
+    _assert_success_response(response)
 
 def test_get_request_with_retry(scraper, mock_http):
     url = "https://example.com"
@@ -79,7 +79,7 @@ def test_get_request_with_retry(scraper, mock_http):
 
     response = scraper.get(url)
 
-    _assert_expected_success_response(response)
+    _assert_success_response(response)
 
 
 def test_get_request_http_status_error(scraper, mock_http):
@@ -94,15 +94,17 @@ def test_get_request_anti_bot_detected_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).return_value = httpx.Response(status_code=200, content=ANTIBOT_CONTENT_IDENTIFIER)
 
-    with pytest.raises(AntiBotDetectedError):
+    with pytest.raises(AntiBotDetectedError) as error:
         scraper.get(url)
+        assert isinstance(error, httpx.HTTPStatusError)
 
 def test_get_request_unexpected_content_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).return_value = httpx.Response(status_code=200, content=b"Invalid Content")
 
-    with pytest.raises(UnexpectedContentError):
+    with pytest.raises(UnexpectedContentError) as error:
         scraper.get(url)
+        assert isinstance(error, httpx.HTTPStatusError)
 
 def test_get_request_max_retries_exceeded_error(scraper, mock_http):
     url = "https://example.com"
