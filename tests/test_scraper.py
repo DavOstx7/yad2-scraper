@@ -1,102 +1,124 @@
 import pytest
+import respx
 import httpx
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from yad2_scraper.scraper import Yad2Scraper, Yad2Category
+from yad2_scraper.exceptions import AntiBotDetectedError, MaxRequestRetriesExceededError, UnexpectedContentError
+from yad2_scraper.constants import ANTIBOT_CONTENT_IDENTIFIER, YAD2_CONTENT_IDENTIFIER
 
 
-# Initialization Tests
-def test_initialization_defaults():
-    scraper = Yad2Scraper()
-    assert isinstance(scraper.session, httpx.Client)
-    assert scraper.request_kwargs == {}
-    assert scraper.randomize_user_agent is False
-    assert scraper.requests_delay_range is None
+@pytest.fixture
+def scraper():
+    with httpx.Client() as client:
+        yield Yad2Scraper(client=client)
 
 
-def test_initialization_custom():
-    session_mock = MagicMock()
-    scraper = Yad2Scraper(
-        session=session_mock,
-        request_kwargs={"timeout": 10},
-        randomize_user_agent=True,
-        requests_delay_range=(1, 3)
-    )
-    assert scraper.session == session_mock
-    assert scraper.request_kwargs == {"timeout": 10}
-    assert scraper.randomize_user_agent is True
-    assert scraper.requests_delay_range == (1, 3)
+@pytest.fixture
+def mock_http():
+    with respx.mock as mock:
+        yield mock
 
 
-# Header & Cookie Tests
-def test_set_user_agent(scraper):
-    user_agent = "test_agent"
-    scraper.set_user_agent(user_agent)
-    assert scraper.session.headers["User-Agent"] == user_agent
+def _create_success_response() -> httpx.Response:
+    return httpx.Response(status_code=200, content=YAD2_CONTENT_IDENTIFIER)
 
 
-def test_set_no_script(scraper):
-    scraper.set_no_script(True)
-    assert scraper.session.cookies["noscript"] == "1"
-    scraper.set_no_script(False)
-    assert scraper.session.cookies["noscript"] == "0"
-
-
-# HTTP Request Tests
-def test_request(scraper, mock_http):
-    url = "http://example.com"
-    mock_http.get(url).mock(return_value=httpx.Response(200, content=b"success"))
-
-    response = scraper.request("GET", url)
-
+def _assert_success_response(response: httpx.Response):
     assert response.status_code == 200
-    assert response.content == b"success"
+    assert response.content == YAD2_CONTENT_IDENTIFIER
 
 
-def test_request_with_delay(scraper, mock_http):
-    url = "http://example.com"
-    scraper.requests_delay_range = (1, 2)
-    mock_http.get(url).mock(return_value=httpx.Response(200, content=b"test content"))
+def test_get_request(scraper, mock_http):
+    url = "https://example.com"
+    mock_http.get(url).return_value = _create_success_response()
 
-    with patch("time.sleep") as mock_sleep:
-        response = scraper.request("GET", url)
-        mock_sleep.assert_called_once()
-        assert response.status_code == 200
+    response = scraper.get(url)
+
+    _assert_success_response(response)
 
 
-def test_request_validation_failure(scraper, mock_http):
-    url = "http://example.com"
-    mock_http.get(url).mock(return_value=httpx.Response(500, content=b"error"))
+def test_get_request_with_params(scraper, mock_http):
+    url = "https://example.com"
+    params = {"key": "value"}
+    mock_http.get(url, params=params).return_value = _create_success_response()
+
+    response = scraper.get(url, params=params)
+
+    _assert_success_response(response)
+    assert b"key=value" in response.request.url.query
+
+
+def test_get_request_with_random_user_agent(scraper, mock_http):
+    url = "https://example.com"
+    scraper.randomize_user_agent = True
+
+    with patch("yad2_scraper.scraper.get_random_user_agent", return_value="RandomUserAgent/1.0"):
+        mock_http.get(url).return_value = _create_success_response()
+        response = scraper.get(url)
+
+    _assert_success_response(response)
+    assert response.request.headers["User-Agent"] == "RandomUserAgent/1.0"
+
+
+def test_get_request_with_delay(scraper, mock_http):
+    url = "https://example.com"
+    mock_http.get(url).return_value = _create_success_response()
+    scraper.random_delay_range = (1, 2)
+
+    with patch("random.uniform", return_value=1.5), patch("time.sleep") as mock_sleep:
+        response = scraper.get(url)
+        mock_sleep.assert_called_once_with(1.5)
+
+    _assert_success_response(response)
+
+def test_get_request_with_retry(scraper, mock_http):
+    url = "https://example.com"
+    mock_http.get(url).side_effect = [httpx.RequestError("Request failed"), _create_success_response()]
+    scraper.max_retries = 3
+
+    response = scraper.get(url)
+
+    _assert_success_response(response)
+
+
+def test_get_request_http_status_error(scraper, mock_http):
+    url = "https://example.com"
+    mock_http.get(url).return_value = httpx.Response(status_code=404, content=b"Not Found")
 
     with pytest.raises(httpx.HTTPStatusError):
-        scraper.request("GET", url)
+        scraper.get(url)
 
 
-def test_request_timeout(scraper, mock_http):
-    url = "http://example.com"
-    mock_http.get(url).mock(side_effect=httpx.TimeoutException("Request timed out"))
+def test_get_request_anti_bot_detected_error(scraper, mock_http):
+    url = "https://example.com"
+    mock_http.get(url).return_value = httpx.Response(status_code=200, content=ANTIBOT_CONTENT_IDENTIFIER)
 
-    with pytest.raises(httpx.TimeoutException, match="Request timed out"):
-        scraper.request("GET", url)
+    with pytest.raises(AntiBotDetectedError) as error:
+        scraper.get(url)
+        assert isinstance(error, httpx.HTTPStatusError)
+
+def test_get_request_unexpected_content_error(scraper, mock_http):
+    url = "https://example.com"
+    mock_http.get(url).return_value = httpx.Response(status_code=200, content=b"Invalid Content")
+
+    with pytest.raises(UnexpectedContentError) as error:
+        scraper.get(url)
+        assert isinstance(error, httpx.HTTPStatusError)
+
+def test_get_request_max_retries_exceeded_error(scraper, mock_http):
+    url = "https://example.com"
+    mock_http.get(url).side_effect = httpx.RequestError("Request failed")
+
+    scraper.max_retries = 3
+
+    with pytest.raises(MaxRequestRetriesExceededError):
+        scraper.get(url)
 
 
-def test_request_applies_request_kwargs(scraper, mock_http):
-    url = "http://example.com"
-    scraper.request_kwargs = {"headers": {"Authorization": "Bearer token"}}
-
-    mock_http.get(url, headers={"Authorization": "Bearer token"}).mock(
-        return_value=httpx.Response(200, content=b"success")
-    )
-
-    response = scraper.request("GET", url)
-
-    assert response.status_code == 200
-
-
-# Fetch Category Tests
 def test_fetch_category(scraper, mock_http):
     url = "http://example.com"
-    mock_http.get(url).mock(return_value=httpx.Response(200, content=b"page content"))
+    mock_http.get(url).mock(return_value=_create_success_response())
 
     class MockYad2Category(Yad2Category):
         @classmethod
@@ -107,75 +129,24 @@ def test_fetch_category(scraper, mock_http):
     assert result == "parsed_category"
 
 
-def test_fetch_category_with_query_params(scraper, mock_http):
-    url = "http://example.com"
-    query_params = {"key": "value"}
-    mock_http.get(url, params=query_params).mock(return_value=httpx.Response(200, content=b"test"))
-
-    class MockCategory(Yad2Category):
-        @classmethod
-        def from_html_io(cls, response):
-            return "parsed_category_with_query"
-
-    result = scraper.fetch_category(url, query_params=query_params, category_type=MockCategory)
-    assert result == "parsed_category_with_query"
+def test_set_client_user_agent(scraper):
+    user_agent = "test_agent"
+    scraper.set_user_agent(user_agent)
+    assert scraper.client.headers["User-Agent"] == user_agent
 
 
-def test_fetch_category_http_error(scraper, mock_http):
-    url = "http://example.com"
-    mock_http.get(url).mock(return_value=httpx.Response(500))
+def test_set_client_no_script(scraper):
+    scraper.set_no_script(True)
+    assert scraper.client.cookies["noscript"] == "1"
+    scraper.set_no_script(False)
+    assert scraper.client.cookies["noscript"] == "0"
 
-    with pytest.raises(httpx.HTTPStatusError):
-        scraper.fetch_category(url, category_type=Yad2Category)
 
-
-# Closing Tests
-def test_close(scraper):
+def test_close_client(scraper):
     scraper.close()
-    assert scraper.session.is_closed
+    assert scraper.client.is_closed
 
 
-# Internal Helper Function Tests
-def test_prepare_request_kwargs(scraper):
-    query_params = {"key": "value"}
-    request_kwargs = scraper._prepare_request_kwargs(query_params=query_params)
-    assert request_kwargs["params"] == query_params
-
-
-def test_prepare_request_kwargs_with_query_params(scraper):
-    query_params = {"key": "value"}
-    request_kwargs = scraper._prepare_request_kwargs(query_params=query_params)
-
-    assert "params" in request_kwargs
-    assert request_kwargs["params"] == query_params
-
-
-def test_prepare_request_kwargs_merge_headers(scraper):
-    scraper.request_kwargs = {"headers": {"X-Test": "existing"}}
-    request_kwargs = scraper._prepare_request_kwargs()
-
-    assert "headers" in request_kwargs
-    assert request_kwargs["headers"]["X-Test"] == "existing"
-
-
-def test_prepare_request_kwargs_preserve_existing_params(scraper):
-    scraper.request_kwargs = {"params": {"existing": "value"}}
-    query_params = {"new": "param"}
-
-    request_kwargs = scraper._prepare_request_kwargs(query_params=query_params)
-
-    assert request_kwargs["params"] == {"existing": "value", "new": "param"}
-
-
-def test_prepare_request_kwargs_random_user_agent(scraper):
-    scraper.randomize_user_agent = True
-    with patch("yad2_scraper.scraper.get_random_user_agent", return_value="random_agent"):
-        request_kwargs = scraper._prepare_request_kwargs()
-        assert request_kwargs["headers"]["User-Agent"] == "random_agent"
-
-
-def test_apply_request_delay(scraper):
-    scraper.requests_delay_range = (1, 2)
-    with patch("random.uniform", return_value=1.5), patch("time.sleep") as mock_sleep:
-        scraper._apply_request_delay()
-        mock_sleep.assert_called_once_with(1.5)
+def test_scraper_context_manager(scraper):
+    with scraper:
+        pass

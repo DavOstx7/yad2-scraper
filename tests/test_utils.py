@@ -1,17 +1,12 @@
 import pytest
-import httpx
-from unittest.mock import MagicMock
 from bs4 import BeautifulSoup
 
 from yad2_scraper.utils import (
     join_url,
     get_parent_url,
-    validate_http_response,
     find_html_tag_by_class_substring,
     find_all_html_tags_by_class_substring,
 )
-from yad2_scraper.exceptions import AntiBotDetectedError
-from yad2_scraper.constants import ANTIBOT_CONTENT
 
 
 @pytest.mark.parametrize(
@@ -38,32 +33,6 @@ def test_join_url(url, path, expected):
 )
 def test_get_parent_url(url, expected):
     assert get_parent_url(url) == expected
-
-
-def test_validate_http_response_success():
-    response = MagicMock(spec=httpx.Response)
-    response.status_code = 200
-    response.content = b"valid content"
-
-    validate_http_response(response)
-
-
-def test_validate_http_response_raises_http_error():
-    response = MagicMock(spec=httpx.Response)
-    response.status_code = 500
-    response.raise_for_status.side_effect = httpx.HTTPStatusError("Server error", request=None, response=response)
-
-    with pytest.raises(httpx.HTTPStatusError, match="Server error"):
-        validate_http_response(response)
-
-
-def test_validate_http_response_antibot_detected():
-    response = MagicMock(spec=httpx.Response)
-    response.status_code = 200
-    response.content = ANTIBOT_CONTENT if isinstance(ANTIBOT_CONTENT, bytes) else ANTIBOT_CONTENT.encode()
-
-    with pytest.raises(AntiBotDetectedError, match="The response contains Anti-Bot content"):
-        validate_http_response(response)
 
 
 HTML_SAMPLE = """

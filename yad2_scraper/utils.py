@@ -1,10 +1,6 @@
-import httpx
 from fake_useragent import FakeUserAgent
 from bs4 import BeautifulSoup, Tag
 from typing import Union, List
-
-from yad2_scraper.exceptions import AntiBotDetectedError
-from yad2_scraper.constants import ANTIBOT_CONTENT
 
 fua = FakeUserAgent()
 
@@ -22,13 +18,6 @@ def get_parent_url(url: str) -> str:
         return url
 
     return url.rstrip("/").rsplit("/", 1)[0]
-
-
-def validate_http_response(response: httpx.Response):
-    response.raise_for_status()
-
-    if ANTIBOT_CONTENT in response.content:
-        raise AntiBotDetectedError(f"The response contains Anti-Bot content")
 
 
 def find_html_tag_by_class_substring(e: Union[BeautifulSoup, Tag], tag_name: str, substring: str) -> Tag:
