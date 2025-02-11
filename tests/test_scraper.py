@@ -1,6 +1,8 @@
 import pytest
 import respx
 import httpx
+import random
+import time
 from unittest.mock import patch
 
 from yad2_scraper.scraper import Yad2Scraper, Yad2Category
@@ -64,9 +66,10 @@ def test_get_request_with_random_user_agent(scraper, mock_http):
 def test_get_request_with_delay(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).return_value = _create_success_response()
-    scraper.random_delay_range = (1, 2)
+
 
     with patch("random.uniform", return_value=1.5), patch("time.sleep") as mock_sleep:
+        scraper.delay_strategy = lambda: time.sleep(random.uniform(1, 3))
         response = scraper.get(url)
         mock_sleep.assert_called_once_with(1.5)
 
