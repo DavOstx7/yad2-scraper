@@ -2,7 +2,7 @@ import logging
 import httpx
 import time
 import random
-from typing import Optional, Dict, Any, Tuple, Union, Type, TypeVar
+from typing import Optional, Dict, Any, Callable, Union, Type, TypeVar
 
 from yad2_scraper.category import Yad2Category
 from yad2_scraper.query import QueryFilters
@@ -17,7 +17,7 @@ from yad2_scraper.constants import (
 )
 
 Category = TypeVar("Category", bound=Yad2Category)
-DelayRange = Tuple[float, float]
+DelayStrategy = Callable[[], None]
 QueryParamTypes = Union[QueryFilters, Dict[str, Any]]
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class Yad2Scraper:
             client: Optional[httpx.Client] = None,
             request_defaults: Optional[Dict[str, Any]] = None,
             randomize_user_agent: bool = False,
-            random_delay_range: Optional[DelayRange] = None,
+            delay_strategy: Optional[DelayStrategy] = None,
             max_retries: int = 0
     ):
         self.client = client or httpx.Client(
@@ -39,7 +39,7 @@ class Yad2Scraper:
         )
         self.request_defaults = request_defaults or {}
         self.randomize_user_agent = randomize_user_agent
-        self.random_delay_range = random_delay_range
+        self.delay_strategy = delay_strategy
         self.max_retries = max_retries
 
         logger.debug(f"Scraper initialized with client: {self.client}")
@@ -84,8 +84,8 @@ class Yad2Scraper:
         if self.randomize_user_agent:
             self._set_random_user_agent(request_options)
 
-        if self.random_delay_range:
-            self._apply_request_delay()
+        if self.delay_strategy:
+            self._apply_delay_strategy()
 
         logger.info(f"Making {method} request to URL: '{url}'")
         response = self.client.request(method, url, **request_options)
@@ -135,10 +135,9 @@ class Yad2Scraper:
 
         return request_options
 
-    def _apply_request_delay(self):
-        delay = random.uniform(*self.random_delay_range)
-        logger.debug(f"Applying request delay of {delay:.2f} seconds")
-        time.sleep(delay)
+    def _apply_delay_strategy(self):
+        logger.debug(f"Applying request delay strategy")
+        self.delay_strategy()
 
     @staticmethod
     def _set_random_user_agent(request_options: Dict[str, str]):
@@ -158,7 +157,7 @@ class Yad2Scraper:
             )
         if YAD2_CONTENT_IDENTIFIER not in response.content:
             raise UnexpectedContentError(
-                "The response does not contain yad2 content",
+                "The response does not contain yad2 related content",
                 request=response.request,
                 response=response
             )
