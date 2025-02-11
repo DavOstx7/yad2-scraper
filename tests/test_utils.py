@@ -1,6 +1,4 @@
 import pytest
-import httpx
-from unittest.mock import MagicMock
 from bs4 import BeautifulSoup
 
 from yad2_scraper.utils import (
@@ -9,8 +7,6 @@ from yad2_scraper.utils import (
     find_html_tag_by_class_substring,
     find_all_html_tags_by_class_substring,
 )
-from yad2_scraper.exceptions import AntiBotDetectedError
-from yad2_scraper.constants import ANTIBOT_RESPONSE_CONTENT
 
 
 @pytest.mark.parametrize(
