@@ -6,16 +6,18 @@ from typing import Optional, Dict, Any, Tuple, Union, Type, TypeVar
 
 from yad2_scraper.category import Yad2Category
 from yad2_scraper.query import QueryFilters
-from yad2_scraper.utils import get_random_user_agent, validate_http_response
+from yad2_scraper.utils import get_random_user_agent
+from yad2_scraper.exceptions import AntiBotDetectedError, MaxRequestRetriesExceededError
 from yad2_scraper.constants import (
     DEFAULT_REQUEST_HEADERS,
     ALLOW_REQUEST_REDIRECTS,
-    VERIFY_REQUEST_SSL
+    VERIFY_REQUEST_SSL,
+    ANTIBOT_RESPONSE_CONTENT
 )
 
 Category = TypeVar("Category", bound=Yad2Category)
 DelayRange = Tuple[float, float]
-QueryParams = Union[QueryFilters, Dict[str, Any]]
+QueryParamTypes = Union[QueryFilters, Dict[str, Any]]
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +25,13 @@ logger = logging.getLogger(__name__)
 class Yad2Scraper:
     def __init__(
             self,
-            session: Optional[httpx.Client] = None,
-            request_defaults: Dict[str, Any] = None,
+            client: Optional[httpx.Client] = None,
+            request_defaults: Optional[Dict[str, Any]] = None,
             randomize_user_agent: bool = False,
             random_delay_range: Optional[DelayRange] = None,
+            max_retries: int = 0
     ):
-        self.session = session or httpx.Client(
+        self.client = client or httpx.Client(
             headers=DEFAULT_REQUEST_HEADERS,
             follow_redirects=ALLOW_REQUEST_REDIRECTS,
             verify=VERIFY_REQUEST_SSL
@@ -36,72 +39,123 @@ class Yad2Scraper:
         self.request_defaults = request_defaults or {}
         self.randomize_user_agent = randomize_user_agent
         self.random_delay_range = random_delay_range
+        self.max_retries = max_retries
 
-        logger.debug(f"Scraper initialized with session: {self.session}")
-
-    def set_user_agent(self, user_agent: str):
-        self.session.headers["User-Agent"] = user_agent
-        logger.debug(f"User-Agent session header set to: '{user_agent}'")
-
-    def set_no_script(self, no_script: bool):
-        value = "1" if no_script else "0"  # str(int(no_script))
-        self.session.cookies.set("noscript", value)
-        logger.debug(f"noscript session cookie set to: '{value}'")
+        logger.debug(f"Scraper initialized with client: {self.client}")
 
     def fetch_category(
             self,
             url: str,
-            query_params: Optional[QueryParams] = None,
+            params: Optional[QueryParamTypes] = None,
             category_type: Type[Category] = Yad2Category
     ) -> Category:
         logger.debug(f"Fetching category from URL: '{url}'")
-        response = self.get(url, query_params)
+        response = self.get(url, params)
         logger.debug(f"Category fetched successfully from URL: '{url}'")
         return category_type.from_html_io(response)
 
-    def get(self, url: str, query_params: Optional[QueryParams] = None) -> httpx.Response:
-        return self.request("GET", url, query_params=query_params)
+    def get(self, url: str, params: Optional[QueryParamTypes] = None) -> httpx.Response:
+        return self.request("GET", url, params=params)
 
-    def request(self, method: str, url: str, query_params: Optional[QueryParams] = None) -> httpx.Response:
-        request_options = self.prepare_request_options(query_params=query_params)
-
-        if self.random_delay_range:
-            self.apply_random_delay()
+    def request(self, method: str, url: str, params: Optional[QueryParamTypes] = None) -> httpx.Response:
+        request_options = self._prepare_request_options(params=params)
 
         try:
-            logger.info(f"Making {method} request to URL: '{url}'")  # request options not logged - may be sensitive
-            response = self.session.request(method, url, **request_options)
-            logger.debug(f"Received response with status code: {response.status_code}")
-
-            validate_http_response(response)
-            logger.debug("Response validation succeeded")
+            return self._send_request(method, url, request_options)
         except Exception as error:
-            logger.error(f"Request to '{url}' failed: {error}")
-            raise error
+            return self._handle_request_error(method, url, request_options, error)
+
+    def set_user_agent(self, user_agent: str) -> None:
+        self.client.headers["User-Agent"] = user_agent
+        logger.debug(f"User-Agent client header set to: '{user_agent}'")
+
+    def set_no_script(self, no_script: bool) -> None:
+        value = "1" if no_script else "0"
+        self.client.cookies.set("noscript", value)
+        logger.debug(f"noscript client cookie set to: '{value}'")
+
+    def close(self) -> None:
+        logger.debug("Closing scraper client")
+        self.client.close()
+        logger.info("Scraper client closed")
+
+    def _send_request(self, method: str, url: str, request_options: Dict[str, Any]) -> httpx.Response:
+        if self.randomize_user_agent:
+            self._set_random_user_agent(request_options)
+
+        if self.random_delay_range:
+            self._apply_request_delay()
+
+        logger.info(f"Making {method} request to URL: '{url}'")
+        response = self.client.request(method, url, **request_options)
+        logger.debug(f"Received response with status code: {response.status_code}")
+        self._validate_response(response)
 
         return response
 
-    def prepare_request_options(self, query_params: Optional[QueryParams] = None) -> Dict[str, Any]:
+    def _handle_request_error(
+            self,
+            method: str,
+            url: str,
+            request_options: Dict[str, Any],
+            error: Exception
+    ) -> httpx.Response:
+        logger.error(f"{method} request to '{url}' failed: {error}")
+
+        if self.max_retries == 0:
+            raise error
+
+        return self._retry_request(method, url, request_options)
+
+    def _retry_request(self, method: str, url: str, request_options: Dict[str, Any]) -> httpx.Response:
+        logger.info(f"Retrying {method} request to '{url}' (max retries: {self.max_retries})")
+
+        errors = []
+
+        for retry_attempt in range(1, self.max_retries + 1):
+            try:
+                logger.debug(f"Retry attempt {retry_attempt}/{self.max_retries}")
+                return self._send_request(method, url, request_options)
+            except Exception as error:
+                logger.warning(f"Retry attempt {retry_attempt} failed: {error}")
+                errors.append(error)
+
+        error_to_raise = MaxRequestRetriesExceededError(method, url, self.max_retries, errors)
+        logger.error(str(error_to_raise))
+        raise error_to_raise from errors[-1]
+
+    def _prepare_request_options(self, params: Optional[QueryParamTypes] = None) -> Dict[str, Any]:
         logger.debug("Preparing request options from defaults")
         request_options = self.request_defaults.copy()
 
-        if query_params:
-            request_options.setdefault("params", {}).update(query_params)
-            logger.debug(f"Updated request options with query params: {query_params}")
-
-        if self.randomize_user_agent:
-            random_user_agent = get_random_user_agent()
-            request_options.setdefault("headers", {})["User-Agent"] = random_user_agent
-            logger.debug(f"Updated request options with random User-Agent header: '{random_user_agent}'")
+        if params:
+            request_options.setdefault("params", {}).update(params)
+            logger.debug(f"Updated request options with query params: {params}")
 
         return request_options
 
-    def apply_random_delay(self):
+    def _apply_request_delay(self):
         delay = random.uniform(*self.random_delay_range)
         logger.debug(f"Applying request delay of {delay:.2f} seconds")
         time.sleep(delay)
 
-    def close(self):
-        logger.debug("Closing scraper session")
-        self.session.close()
-        logger.info("Scraper session closed")
+    @staticmethod
+    def _set_random_user_agent(request_options: Dict[str, str]):
+        user_agent = get_random_user_agent()
+        request_options.setdefault("headers", {})["User-Agent"] = user_agent
+        logger.debug(f"Updated request options with random User-Agent header: '{user_agent}'")
+
+    @staticmethod
+    def _validate_response(response: httpx.Response):
+        response.raise_for_status()
+        if ANTIBOT_RESPONSE_CONTENT in response.content:
+            raise AntiBotDetectedError(f"The response contains Anti-Bot content")
+        logger.debug("Response validation succeeded")
+
+    def __enter__(self):
+        logger.debug("Entering scraper context")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        logger.debug("Exiting scraper context")
+        self.close()
