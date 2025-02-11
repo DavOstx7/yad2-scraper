@@ -18,7 +18,8 @@ DEFAULT_REQUEST_HEADERS = {
 ALLOW_REQUEST_REDIRECTS = True
 VERIFY_REQUEST_SSL = True
 
-ANTIBOT_RESPONSE_CONTENT = b"Are you for real"  # robot-captcha
+ANTIBOT_CONTENT_IDENTIFIER = b"Are you for real"  # robot-captcha
+YAD2_CONTENT_IDENTIFIER = b"https://www.yad2.co.il/"
 
 FIRST_PAGE_NUMBER = 1
 NOT_MENTIONED_PRICE_RANGE = 0, 0

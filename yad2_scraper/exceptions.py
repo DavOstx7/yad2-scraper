@@ -1,7 +1,17 @@
+import httpx
 from typing import List
 
 
-class AntiBotDetectedError(Exception):
+class ResponseError(httpx.HTTPStatusError):
+    # This adds the request/response objects to the error
+    pass
+
+
+class AntiBotDetectedError(ResponseError):
+    pass
+
+
+class UnexpectedContentError(ResponseError):
     pass
 
 

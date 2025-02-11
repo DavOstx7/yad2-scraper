@@ -7,12 +7,13 @@ from typing import Optional, Dict, Any, Tuple, Union, Type, TypeVar
 from yad2_scraper.category import Yad2Category
 from yad2_scraper.query import QueryFilters
 from yad2_scraper.utils import get_random_user_agent
-from yad2_scraper.exceptions import AntiBotDetectedError, MaxRequestRetriesExceededError
+from yad2_scraper.exceptions import AntiBotDetectedError, UnexpectedContentError, MaxRequestRetriesExceededError
 from yad2_scraper.constants import (
     DEFAULT_REQUEST_HEADERS,
     ALLOW_REQUEST_REDIRECTS,
     VERIFY_REQUEST_SSL,
-    ANTIBOT_RESPONSE_CONTENT
+    ANTIBOT_CONTENT_IDENTIFIER,
+    YAD2_CONTENT_IDENTIFIER
 )
 
 Category = TypeVar("Category", bound=Yad2Category)
@@ -148,8 +149,20 @@ class Yad2Scraper:
     @staticmethod
     def _validate_response(response: httpx.Response):
         response.raise_for_status()
-        if ANTIBOT_RESPONSE_CONTENT in response.content:
-            raise AntiBotDetectedError(f"The response contains Anti-Bot content")
+
+        if ANTIBOT_CONTENT_IDENTIFIER in response.content:
+            raise AntiBotDetectedError(
+                f"The response contains Anti-Bot content",
+                request=response.request,
+                response=response
+            )
+        if YAD2_CONTENT_IDENTIFIER not in response.content:
+            raise UnexpectedContentError(
+                "The response does not contain yad2 content",
+                request=response.request,
+                response=response
+            )
+
         logger.debug("Response validation succeeded")
 
     def __enter__(self):
