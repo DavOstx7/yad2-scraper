@@ -6,17 +6,17 @@ from typing import Optional, Dict, Any, Callable, Union, Type, TypeVar
 from yad2_scraper.category import Yad2Category
 from yad2_scraper.query import QueryFilters
 from yad2_scraper.utils import get_random_user_agent
-from yad2_scraper.exceptions import AntiBotDetectedError, UnexpectedContentError, MaxRequestRetriesExceededError
+from yad2_scraper.exceptions import AntiBotDetectedError, UnexpectedContentError, MaxRequestAttemptsExceededError
 from yad2_scraper.constants import (
     DEFAULT_REQUEST_HEADERS,
     ALLOW_REQUEST_REDIRECTS,
     VERIFY_REQUEST_SSL,
     ANTIBOT_CONTENT_IDENTIFIER,
-    YAD2_CONTENT_IDENTIFIER
+    YAD2_GET_CONTENT_IDENTIFIER
 )
 
 Category = TypeVar("Category", bound=Yad2Category)
-DelayStrategy = Callable[[], float]
+WaitStrategy = Callable[[int], Optional[float]]
 QueryParamTypes = Union[QueryFilters, Dict[str, Any]]
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,8 @@ class Yad2Scraper:
             client: Optional[httpx.Client] = None,
             request_defaults: Optional[Dict[str, Any]] = None,
             randomize_user_agent: bool = False,
-            delay_strategy: Optional[DelayStrategy] = None,
-            max_retries: int = 0
+            wait_strategy: Optional[WaitStrategy] = None,
+            max_attempts: int = 1
     ):
         self.client = client or httpx.Client(
             headers=DEFAULT_REQUEST_HEADERS,
@@ -38,10 +38,19 @@ class Yad2Scraper:
         )
         self.request_defaults = request_defaults or {}
         self.randomize_user_agent = randomize_user_agent
-        self.delay_strategy = delay_strategy
-        self.max_retries = max_retries
+        self.wait_strategy = wait_strategy
+        self.max_attempts = max_attempts
 
         logger.debug(f"Scraper initialized with client: {self.client}")
+
+    def set_user_agent(self, user_agent: str) -> None:
+        self.client.headers["User-Agent"] = user_agent
+        logger.debug(f"User-Agent client header set to: '{user_agent}'")
+
+    def set_no_script(self, no_script: bool) -> None:
+        value = "1" if no_script else "0"
+        self.client.cookies.set("noscript", value)
+        logger.debug(f"NoScript (noscript) client cookie set to: '{value}'")
 
     def fetch_category(
             self,
@@ -58,71 +67,47 @@ class Yad2Scraper:
         return self.request("GET", url, params=params)
 
     def request(self, method: str, url: str, params: Optional[QueryParamTypes] = None) -> httpx.Response:
+        if not isinstance(self.max_attempts, int):
+            raise TypeError(f"Max attempts must be of type 'int', but got {type(self.max_attempts)}.")
+
+        if self.max_attempts <= 0:
+            raise ValueError(f"Max attempts must be a positive integer, but got {self.max_attempts}.")
+
         request_options = self._prepare_request_options(params=params)
+        error_list = []
 
-        try:
-            return self._send_request(method, url, request_options)
-        except Exception as error:
-            return self._handle_request_error(method, url, request_options, error)
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                return self._send_request(method, url, request_options, attempt)
+            except Exception as error:
+                logger.error(f"{method} request to '{url}' failed {self._format_attempt_info(attempt)}: {error}")
+                error_list.append(error)
 
-    def set_user_agent(self, user_agent: str) -> None:
-        self.client.headers["User-Agent"] = user_agent
-        logger.debug(f"User-Agent client header set to: '{user_agent}'")
+        if self.max_attempts == 1:
+            raise error_list[0]  # Only one error exists - raise it
 
-    def set_no_script(self, no_script: bool) -> None:
-        value = "1" if no_script else "0"
-        self.client.cookies.set("noscript", value)
-        logger.debug(f"noscript client cookie set to: '{value}'")
+        max_attempts_error = MaxRequestAttemptsExceededError(method, url, self.max_attempts, error_list)
+        logger.error(str(max_attempts_error))
+        raise max_attempts_error from error_list[-1]
 
     def close(self) -> None:
         logger.debug("Closing scraper client")
         self.client.close()
         logger.info("Scraper client closed")
 
-    def _send_request(self, method: str, url: str, request_options: Dict[str, Any]) -> httpx.Response:
+    def _send_request(self, method: str, url: str, request_options: Dict[str, Any], attempt: int) -> httpx.Response:
         if self.randomize_user_agent:
-            self._set_random_user_agent(request_options)
+            self._set_random_user_agent_in_request_options(request_options)
 
-        if self.delay_strategy:
-            self._apply_delay_strategy()
+        if self.wait_strategy:
+            self._wait_before_request_attempt(attempt)
 
-        logger.info(f"Making {method} request to URL: '{url}'")
+        logger.info(f"Sending {method} request to URL: '{url}' {self._format_attempt_info(attempt)}")
         response = self.client.request(method, url, **request_options)
-        logger.debug(f"Received response with status code: {response.status_code}")
+        logger.debug(f"Received response {response.status_code} from '{url}' {self._format_attempt_info(attempt)}")
         self._validate_response(response)
 
         return response
-
-    def _handle_request_error(
-            self,
-            method: str,
-            url: str,
-            request_options: Dict[str, Any],
-            error: Exception
-    ) -> httpx.Response:
-        logger.error(f"{method} request to '{url}' failed: {error}")
-
-        if self.max_retries == 0:
-            raise error
-
-        return self._retry_request(method, url, request_options)
-
-    def _retry_request(self, method: str, url: str, request_options: Dict[str, Any]) -> httpx.Response:
-        logger.info(f"Retrying {method} request to '{url}' (max retries: {self.max_retries})")
-
-        errors = []
-
-        for retry_attempt in range(1, self.max_retries + 1):
-            try:
-                logger.debug(f"Retry attempt {retry_attempt}/{self.max_retries}")
-                return self._send_request(method, url, request_options)
-            except Exception as error:
-                logger.warning(f"Retry attempt {retry_attempt} failed: {error}")
-                errors.append(error)
-
-        error_to_raise = MaxRequestRetriesExceededError(method, url, self.max_retries, errors)
-        logger.error(str(error_to_raise))
-        raise error_to_raise from errors[-1]
 
     def _prepare_request_options(self, params: Optional[QueryParamTypes] = None) -> Dict[str, Any]:
         logger.debug("Preparing request options from defaults")
@@ -134,16 +119,19 @@ class Yad2Scraper:
 
         return request_options
 
-    def _apply_delay_strategy(self):
-        delay = self.delay_strategy()
-        logger.debug(f"Applying request delay of {delay:.2f} seconds")
-        time.sleep(delay)
-
     @staticmethod
-    def _set_random_user_agent(request_options: Dict[str, str]):
+    def _set_random_user_agent_in_request_options(request_options: Dict[str, str]):
         user_agent = get_random_user_agent()
         request_options.setdefault("headers", {})["User-Agent"] = user_agent
         logger.debug(f"Updated request options with random User-Agent header: '{user_agent}'")
+
+    def _wait_before_request_attempt(self, attempt: int):
+        wait_time = self.wait_strategy(attempt)
+        if not wait_time:
+            return
+
+        logger.debug(f"Waiting {wait_time:.2f} seconds before request {self._format_attempt_info(attempt)}")
+        time.sleep(wait_time)
 
     @staticmethod
     def _validate_response(response: httpx.Response):
@@ -155,14 +143,17 @@ class Yad2Scraper:
                 request=response.request,
                 response=response
             )
-        if YAD2_CONTENT_IDENTIFIER not in response.content:
+        if response.request.method == "GET" and YAD2_GET_CONTENT_IDENTIFIER not in response.content:
             raise UnexpectedContentError(
-                "The response does not contain yad2 related content",
+                "The GET response does not contain yad2 related content",
                 request=response.request,
                 response=response
             )
 
         logger.debug("Response validation succeeded")
+
+    def _format_attempt_info(self, attempt: int) -> str:
+        return f"(attempt {attempt}/{self.max_attempts})"
 
     def __enter__(self):
         logger.debug("Entering scraper context")

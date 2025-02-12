@@ -9,6 +9,10 @@ def get_random_user_agent() -> str:
     return fua.random
 
 
+def format_attempt_log(attempt: int, max_attempts: int) -> str:
+    return f"(attempt {attempt}/{max_attempts})"
+
+
 def join_url(url: str, path: str) -> str:
     return url.rstrip("/") + "/" + path.lstrip("/")
 
