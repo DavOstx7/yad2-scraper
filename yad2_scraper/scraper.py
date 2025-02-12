@@ -89,7 +89,7 @@ class Yad2Scraper:
 
         max_attempts_error = MaxRequestAttemptsExceededError(method, url, self.max_request_attempts, error_list)
         logger.error(str(max_attempts_error))
-        raise max_attempts_error from error_list[-1]
+        raise max_attempts_error from error_list[-1] # multiple errors exist, raise from the last one
 
     def close(self) -> None:
         logger.debug("Closing scraper client")
@@ -101,7 +101,7 @@ class Yad2Scraper:
             self._set_random_user_agent_in_request_options(request_options)
 
         if self.wait_strategy:
-            self._wait_before_request_attempt(attempt)
+            self._apply_wait_strategy_before_request_attempt(attempt)
 
         logger.info(f"Sending {method} request to URL: '{url}' {self._format_attempt_info(attempt)}")
         response = self.client.request(method, url, **request_options)
@@ -126,7 +126,7 @@ class Yad2Scraper:
         request_options.setdefault("headers", {})["User-Agent"] = user_agent
         logger.debug(f"Updated request options with random User-Agent header: '{user_agent}'")
 
-    def _wait_before_request_attempt(self, attempt: int):
+    def _apply_wait_strategy_before_request_attempt(self, attempt: int):
         wait_time = self.wait_strategy(attempt)
         if not wait_time:
             return
