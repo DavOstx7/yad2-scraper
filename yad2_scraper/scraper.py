@@ -1,11 +1,11 @@
 import logging
 import httpx
 import time
+from fake_useragent import FakeUserAgent
 from typing import Optional, Dict, Any, Callable, Union, Type, TypeVar
 
 from yad2_scraper.category import Yad2Category
 from yad2_scraper.query import QueryFilters
-from yad2_scraper.utils import get_random_user_agent
 from yad2_scraper.exceptions import AntiBotDetectedError, UnexpectedContentError, MaxRequestAttemptsExceededError
 from yad2_scraper.constants import (
     DEFAULT_REQUEST_HEADERS,
@@ -19,6 +19,7 @@ Category = TypeVar("Category", bound=Yad2Category)
 WaitStrategy = Callable[[int], Optional[float]]
 QueryParamTypes = Union[QueryFilters, Dict[str, Any]]
 
+ufa = FakeUserAgent()
 logger = logging.getLogger(__name__)
 
 
@@ -121,7 +122,7 @@ class Yad2Scraper:
 
     @staticmethod
     def _set_random_user_agent_in_request_options(request_options: Dict[str, str]):
-        user_agent = get_random_user_agent()
+        user_agent = ufa.random
         request_options.setdefault("headers", {})["User-Agent"] = user_agent
         logger.debug(f"Updated request options with random User-Agent header: '{user_agent}'")
 

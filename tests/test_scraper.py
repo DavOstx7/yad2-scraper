@@ -52,14 +52,14 @@ def test_get_request_with_params(scraper, mock_http):
 
 def test_get_request_with_random_user_agent(scraper, mock_http):
     url = "https://example.com"
+    mock_http.get(url).return_value = _create_success_response()
+    scraper.set_user_agent("RandomUserAgent/1.0")
     scraper.randomize_user_agent = True
 
-    with patch("yad2_scraper.scraper.get_random_user_agent", return_value="RandomUserAgent/1.0"):
-        mock_http.get(url).return_value = _create_success_response()
-        response = scraper.get(url)
+    response = scraper.get(url)
 
     _assert_success_response(response)
-    assert response.request.headers["User-Agent"] == "RandomUserAgent/1.0"
+    assert response.request.headers["User-Agent"] != "RandomUserAgent/1.0"
 
 
 def test_get_request_with_wait_strategy(scraper, mock_http):
@@ -100,7 +100,7 @@ def test_get_request_anti_bot_detected_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).return_value = httpx.Response(status_code=200, content=ANTIBOT_CONTENT_IDENTIFIER)
 
-    with pytest.raises(AntiBotDetectedError) as error:
+    with pytest.raises(AntiBotDetectedError):
         scraper.get(url)
 
 
@@ -108,11 +108,11 @@ def test_get_request_unexpected_content_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).return_value = httpx.Response(status_code=200, content=b"Invalid Content")
 
-    with pytest.raises(UnexpectedContentError) as error:
+    with pytest.raises(UnexpectedContentError):
         scraper.get(url)
 
 
-def test_get_request_max_attempts_exceeded_error(scraper, mock_http):
+def test_get_request_max_request_attempts_exceeded_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).side_effect = httpx.RequestError("Request failed")
     scraper.max_attempts = 3
