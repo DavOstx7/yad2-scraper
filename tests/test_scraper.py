@@ -81,7 +81,7 @@ def test_get_request_with_multiple_attempts(scraper, mock_http):
         httpx.RequestError("Request failed"),
         _create_success_response()
     ]
-    scraper.max_attempts = 3
+    scraper.max_request_attempts = 3
 
     response = scraper.get(url)
 
@@ -112,20 +112,11 @@ def test_get_request_unexpected_content_error(scraper, mock_http):
         scraper.get(url)
 
 
-def test_get_request_max_request_attempts_exceeded_error(scraper, mock_http):
-    url = "https://example.com"
-    mock_http.get(url).side_effect = httpx.RequestError("Request failed")
-    scraper.max_attempts = 3
-
-    with pytest.raises(MaxRequestAttemptsExceededError):
-        scraper.get(url)
-
-
 def test_get_request_max_attempts_type_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).side_effect = httpx.RequestError("Request failed")
 
-    scraper.max_attempts = "invalid_type"
+    scraper.max_request_attempts = "invalid_type"
     with pytest.raises(TypeError):
         scraper.get(url)
 
@@ -134,8 +125,17 @@ def test_get_request_max_attempts_value_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).side_effect = httpx.RequestError("Request failed")
 
-    scraper.max_attempts = -3
+    scraper.max_request_attempts = -3
     with pytest.raises(ValueError):
+        scraper.get(url)
+
+
+def test_get_request_max_attempts_exceeded_error(scraper, mock_http):
+    url = "https://example.com"
+    mock_http.get(url).side_effect = httpx.RequestError("Request failed")
+    scraper.max_request_attempts = 3
+
+    with pytest.raises(MaxRequestAttemptsExceededError):
         scraper.get(url)
 
 

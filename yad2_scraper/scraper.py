@@ -30,7 +30,7 @@ class Yad2Scraper:
             request_defaults: Optional[Dict[str, Any]] = None,
             randomize_user_agent: bool = False,
             wait_strategy: Optional[WaitStrategy] = None,
-            max_attempts: int = 1
+            max_request_attempts: int = 1
     ):
         self.client = client or httpx.Client(
             headers=DEFAULT_REQUEST_HEADERS,
@@ -40,7 +40,7 @@ class Yad2Scraper:
         self.request_defaults = request_defaults or {}
         self.randomize_user_agent = randomize_user_agent
         self.wait_strategy = wait_strategy
-        self.max_attempts = max_attempts
+        self.max_request_attempts = max_request_attempts
 
         logger.debug(f"Scraper initialized with client: {self.client}")
 
@@ -68,26 +68,26 @@ class Yad2Scraper:
         return self.request("GET", url, params=params)
 
     def request(self, method: str, url: str, params: Optional[QueryParamTypes] = None) -> httpx.Response:
-        if not isinstance(self.max_attempts, int):
-            raise TypeError(f"Max attempts must be of type 'int', but got {type(self.max_attempts)}.")
+        if not isinstance(self.max_request_attempts, int):
+            raise TypeError(f"max_request_attempts must be of type 'int', but got {type(self.max_request_attempts)}")
 
-        if self.max_attempts <= 0:
-            raise ValueError(f"Max attempts must be a positive integer, but got {self.max_attempts}.")
+        if self.max_request_attempts <= 0:
+            raise ValueError(f"max_request_attempts must be a positive integer, but got {self.max_request_attempts}")
 
         request_options = self._prepare_request_options(params=params)
         error_list = []
 
-        for attempt in range(1, self.max_attempts + 1):
+        for attempt in range(1, self.max_request_attempts + 1):
             try:
                 return self._send_request(method, url, request_options, attempt)
             except Exception as error:
                 logger.error(f"{method} request to '{url}' failed {self._format_attempt_info(attempt)}: {error}")
                 error_list.append(error)
 
-        if self.max_attempts == 1:
-            raise error_list[0]  # Only one error exists - raise it
+        if self.max_request_attempts == 1:
+            raise error_list[0]  # only one error exists, raise it
 
-        max_attempts_error = MaxRequestAttemptsExceededError(method, url, self.max_attempts, error_list)
+        max_attempts_error = MaxRequestAttemptsExceededError(method, url, self.max_request_attempts, error_list)
         logger.error(str(max_attempts_error))
         raise max_attempts_error from error_list[-1]
 
@@ -154,7 +154,7 @@ class Yad2Scraper:
         logger.debug("Response validation succeeded")
 
     def _format_attempt_info(self, attempt: int) -> str:
-        return f"(attempt {attempt}/{self.max_attempts})"
+        return f"(attempt {attempt}/{self.max_request_attempts})"
 
     def __enter__(self):
         logger.debug("Entering scraper context")
