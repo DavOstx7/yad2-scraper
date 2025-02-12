@@ -69,7 +69,7 @@ def test_get_request_with_delay(scraper, mock_http):
 
 
     with patch("random.uniform", return_value=1.5), patch("time.sleep") as mock_sleep:
-        scraper.delay_strategy = lambda: time.sleep(random.uniform(1, 3))
+        scraper.delay_strategy = lambda: random.uniform(1, 3)
         response = scraper.get(url)
         mock_sleep.assert_called_once_with(1.5)
 

@@ -1,7 +1,6 @@
 import logging
 import httpx
 import time
-import random
 from typing import Optional, Dict, Any, Callable, Union, Type, TypeVar
 
 from yad2_scraper.category import Yad2Category
@@ -17,7 +16,7 @@ from yad2_scraper.constants import (
 )
 
 Category = TypeVar("Category", bound=Yad2Category)
-DelayStrategy = Callable[[], None]
+DelayStrategy = Callable[[], float]
 QueryParamTypes = Union[QueryFilters, Dict[str, Any]]
 
 logger = logging.getLogger(__name__)
@@ -136,8 +135,9 @@ class Yad2Scraper:
         return request_options
 
     def _apply_delay_strategy(self):
-        logger.debug(f"Applying request delay strategy")
-        self.delay_strategy()
+        delay = self.delay_strategy()
+        logger.debug(f"Applying request delay of {delay:.2f} seconds")
+        time.sleep(delay)
 
     @staticmethod
     def _set_random_user_agent(request_options: Dict[str, str]):
