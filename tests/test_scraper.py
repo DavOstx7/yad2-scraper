@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from yad2_scraper.scraper import Yad2Scraper, Yad2Category
 from yad2_scraper.exceptions import AntiBotDetectedError, MaxRequestAttemptsExceededError, UnexpectedContentError
-from yad2_scraper.constants import ANTIBOT_CONTENT_IDENTIFIER, YAD2_GET_CONTENT_IDENTIFIER
+from yad2_scraper.constants import ANTIBOT_CONTENT_IDENTIFIER, PAGE_CONTENT_IDENTIFIER
 
 
 @pytest.fixture
@@ -22,12 +22,12 @@ def mock_http():
 
 
 def _create_success_response() -> httpx.Response:
-    return httpx.Response(status_code=200, content=YAD2_GET_CONTENT_IDENTIFIER)
+    return httpx.Response(status_code=200, content=PAGE_CONTENT_IDENTIFIER)
 
 
 def _assert_success_response(response: httpx.Response):
     assert response.status_code == 200
-    assert response.content == YAD2_GET_CONTENT_IDENTIFIER
+    assert response.content == PAGE_CONTENT_IDENTIFIER
 
 
 def test_get_request(scraper, mock_http):

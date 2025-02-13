@@ -12,14 +12,14 @@ from yad2_scraper.constants import (
     ALLOW_REQUEST_REDIRECTS,
     VERIFY_REQUEST_SSL,
     ANTIBOT_CONTENT_IDENTIFIER,
-    YAD2_GET_CONTENT_IDENTIFIER
+    PAGE_CONTENT_IDENTIFIER
 )
 
 Category = TypeVar("Category", bound=Yad2Category)
 WaitStrategy = Callable[[int], Optional[float]]
 QueryParamTypes = Union[QueryFilters, Dict[str, Any]]
 
-ufa = FakeUserAgent()
+fua = FakeUserAgent()
 logger = logging.getLogger(__name__)
 
 
@@ -122,7 +122,7 @@ class Yad2Scraper:
 
     @staticmethod
     def _set_random_user_agent_in_request_options(request_options: Dict[str, str]):
-        user_agent = ufa.random
+        user_agent = fua.random
         request_options.setdefault("headers", {})["User-Agent"] = user_agent
         logger.debug(f"Updated request options with random User-Agent header: '{user_agent}'")
 
@@ -144,7 +144,7 @@ class Yad2Scraper:
                 request=response.request,
                 response=response
             )
-        if response.request.method == "GET" and YAD2_GET_CONTENT_IDENTIFIER not in response.content:
+        if response.request.method == "GET" and PAGE_CONTENT_IDENTIFIER not in response.content:
             raise UnexpectedContentError(
                 "The GET response does not contain yad2 related content",
                 request=response.request,
