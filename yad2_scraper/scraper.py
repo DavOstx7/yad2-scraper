@@ -28,7 +28,7 @@ class Yad2Scraper:
             self,
             client: Optional[httpx.Client] = None,
             request_defaults: Optional[Dict[str, Any]] = None,
-            randomize_user_agent: bool = False,
+            randomize_user_agent: bool = True,
             wait_strategy: Optional[WaitStrategy] = None,
             max_request_attempts: int = 1
     ):
@@ -56,8 +56,8 @@ class Yad2Scraper:
     def fetch_category(
             self,
             url: str,
-            params: Optional[QueryParamTypes] = None,
-            category_type: Type[Category] = Yad2Category
+            category_type: Type[Category] = Yad2Category,
+            params: Optional[QueryParamTypes] = None
     ) -> Category:
         logger.debug(f"Fetching category from URL: '{url}'")
         response = self.get(url, params)
@@ -89,7 +89,7 @@ class Yad2Scraper:
 
         max_attempts_error = MaxRequestAttemptsExceededError(method, url, self.max_request_attempts, error_list)
         logger.error(str(max_attempts_error))
-        raise max_attempts_error from error_list[-1] # multiple errors exist, raise from the last one
+        raise max_attempts_error from error_list[-1]  # multiple errors exist, raise from the last one
 
     def close(self) -> None:
         logger.debug("Closing scraper client")
@@ -98,10 +98,10 @@ class Yad2Scraper:
 
     def _send_request(self, method: str, url: str, request_options: Dict[str, Any], attempt: int) -> httpx.Response:
         if self.randomize_user_agent:
-            self._set_random_user_agent_in_request_options(request_options)
+            self._set_random_user_agent(request_options)
 
         if self.wait_strategy:
-            self._apply_wait_strategy_before_request_attempt(attempt)
+            self._apply_wait_strategy(attempt)
 
         logger.info(f"Sending {method} request to URL: '{url}' {self._format_attempt_info(attempt)}")
         response = self.client.request(method, url, **request_options)
@@ -121,12 +121,12 @@ class Yad2Scraper:
         return request_options
 
     @staticmethod
-    def _set_random_user_agent_in_request_options(request_options: Dict[str, str]):
+    def _set_random_user_agent(request_options: Dict[str, str]):
         user_agent = fua.random
         request_options.setdefault("headers", {})["User-Agent"] = user_agent
         logger.debug(f"Updated request options with random User-Agent header: '{user_agent}'")
 
-    def _apply_wait_strategy_before_request_attempt(self, attempt: int):
+    def _apply_wait_strategy(self, attempt: int):
         wait_time = self.wait_strategy(attempt)
         if not wait_time:
             return
