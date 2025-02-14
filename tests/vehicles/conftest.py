@@ -14,7 +14,7 @@ def cars_category() -> Yad2VehiclesCategory:
 
 @pytest.fixture(scope="session")
 def cars_tags(cars_category) -> List[VehicleTag]:
-    return cars_category.get_vehicles()
+    return cars_category.get_vehicle_tags()
 
 
 @pytest.fixture(scope="session")
