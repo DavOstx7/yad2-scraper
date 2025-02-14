@@ -1,5 +1,6 @@
+import functools
 from bs4 import BeautifulSoup, Tag
-from typing import Union, List
+from typing import Union, List, Tuple, Any
 
 
 def join_url(url: str, path: str) -> str:
@@ -19,3 +20,17 @@ def find_html_tag_by_class_substring(e: Union[BeautifulSoup, Tag], tag_name: str
 
 def find_all_html_tags_by_class_substring(e: Union[BeautifulSoup, Tag], tag_name: str, substring: str) -> List[Tag]:
     return e.find_all(tag_name, class_=lambda class_name: class_name and substring in class_name)
+
+
+def safe_access(exceptions: Tuple = (), default: Any = None):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except exceptions:
+                return default
+
+        return wrapper
+
+    return decorator
