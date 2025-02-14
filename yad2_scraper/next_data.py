@@ -1,5 +1,8 @@
+from datetime import datetime
 from enum import Enum
 from typing import List, Union
+
+FieldTypes = Union[str, int]
 
 
 class Field(str, Enum):
@@ -8,7 +11,8 @@ class Field(str, Enum):
     ENGLISH_TEXT = "textEng"
 
 
-FieldTypes = Union[str, int]
+def convert_string_date_to_datetime(date_string: str) -> datetime:
+    return datetime.fromisoformat(date_string)
 
 
 class NextData:
