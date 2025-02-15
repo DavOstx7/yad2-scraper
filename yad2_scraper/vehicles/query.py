@@ -5,6 +5,7 @@ from yad2_scraper.query import QueryFilters, OrderBy, NumberRange, format_number
 
 
 class OrderVehiclesBy(int, Enum):
+    """Enum representing different order options for sorting vehicles."""
     DATE = OrderBy.DATE
     PRICE_LOWEST_TO_HIGHEST = OrderBy.PRICE_LOWEST_TO_HIGHEST
     PRICE_HIGHEST_TO_LOWEST = OrderBy.PRICE_HIGHEST_TO_LOWEST

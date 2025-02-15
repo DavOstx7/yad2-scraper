@@ -14,7 +14,7 @@ from yad2_scraper.vehicles.urls import VEHICLES_URL
 
 
 class VehicleData(metaclass=SafeAccessOptionalKeysMeta):
-    """Represents structured Next.js data of a specific vehicle category."""
+    """Represents the data for a single vehicle."""
 
     def __init__(self, data: dict):
         self.data = data
@@ -305,7 +305,10 @@ class VehicleData(metaclass=SafeAccessOptionalKeysMeta):
 
 
 class VehiclesNextData(NextData):
+    """Represents structured Next.js data of a specific vehicle category."""
+
     def iterate_vehicles(self) -> Iterator[VehicleData]:
+        """Iterates through the queries and yields `VehicleData` objects."""
         for query in self.queries:
             data = query["state"].get("data")
 
@@ -315,6 +318,3 @@ class VehiclesNextData(NextData):
             for vehicle_data in itertools.chain.from_iterable(data.values()):
                 if isinstance(vehicle_data, dict):
                     yield VehicleData(vehicle_data)
-
-    def __getitem__(self, item):
-        return self.data[item]

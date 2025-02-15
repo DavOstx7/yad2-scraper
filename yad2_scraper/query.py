@@ -6,6 +6,7 @@ NumberRange = Tuple[int, int]
 
 
 class OrderBy(int, Enum):
+    """Enum representing different order options for sorting."""
     DATE = 1
     PRICE_LOWEST_TO_HIGHEST = 3
     PRICE_HIGHEST_TO_LOWEST = 4
