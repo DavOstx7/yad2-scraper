@@ -14,6 +14,8 @@ from yad2_scraper.vehicles.urls import VEHICLES_URL
 
 
 class VehicleData(metaclass=SafeAccessOptionalKeysMeta):
+    """Represents structured Next.js data of a specific vehicle category."""
+
     def __init__(self, data: dict):
         self.data = data
 
