@@ -3,6 +3,10 @@ from bs4 import BeautifulSoup, Tag
 from typing import Union, List, Tuple, Any
 
 
+def any_param_specified(*params: Any) -> bool:
+    return any(param is not None for param in params)
+
+
 def join_url(url: str, path: str) -> str:
     return url.rstrip("/") + "/" + path.lstrip("/")
 

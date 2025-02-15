@@ -2,12 +2,37 @@ import pytest
 from bs4 import BeautifulSoup
 
 from yad2_scraper.utils import (
+    any_param_specified,
     join_url,
     get_parent_url,
     find_html_tag_by_class_substring,
     find_all_html_tags_by_class_substring,
     safe_access
 )
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (1, None, "1"),
+        (None, 1),
+        (0,),
+    ],
+)
+def test_any_param_specified_false(args):
+    assert any_param_specified(*args)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (),
+        (None,),
+        (None, None, None),
+    ],
+)
+def test_any_param_specified_true(args):
+    assert not any_param_specified(*args)
 
 
 @pytest.mark.parametrize(
