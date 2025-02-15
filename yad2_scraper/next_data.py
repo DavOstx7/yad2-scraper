@@ -27,6 +27,7 @@ class SafeAccessOptionalKeysMeta(type):
 
 
 class Field(str, Enum):
+    """Enum representing different field types for data."""
     ID = "id"
     TEXT = "text"
     ENGLISH_TEXT = "textEng"
