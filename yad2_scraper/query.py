@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from enum import Enum
 from typing import Optional, Tuple
 
-PriceRange = Tuple[int, int]
+NumberRange = Tuple[int, int]
 
 
 class OrderBy(int, Enum):
@@ -27,7 +27,7 @@ def format_number_range(number_range: Optional[Tuple[int, int]]) -> Optional[str
 class QueryFilters(BaseModel):
     page: Optional[int] = None
     order_by: Optional[OrderBy] = None
-    price_range: Optional[PriceRange] = None
+    price_range: Optional[NumberRange] = None
     ...
 
     def to_params(self) -> dict:
