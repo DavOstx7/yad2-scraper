@@ -13,13 +13,14 @@ class OrderVehiclesBy(int, Enum):
 
 
 class VehiclesQueryFilters(QueryFilters):
+    """Pydantic model representing query filters for querying a vehicle resource."""
     year_range: Optional[NumberRange] = None
-    ...
 
     def to_params(self) -> dict:
+        """Convert filter fields to query parameters, including 'year'."""
         return {
             **super().to_params(),
             "year": format_number_range(self.year_range)
         }
 
-# TODO: add QueryParams class for each vehicle type (some share the same attributes - sometimes with different enums)
+# TODO: add QueryParams class for each vehicle category (some share the same attributes, sometimes with different enums)

@@ -13,6 +13,7 @@ class OrderBy(int, Enum):
 
 
 def format_number_range(number_range: Optional[Tuple[int, int]]) -> Optional[str]:
+    """Format a number range as 'min_value-max_value'."""
     if number_range is None:
         return None
 
@@ -25,12 +26,13 @@ def format_number_range(number_range: Optional[Tuple[int, int]]) -> Optional[str
 
 
 class QueryFilters(BaseModel):
+    """Pydantic model representing query filters for querying a resource."""
     page: Optional[int] = None
     order_by: Optional[OrderBy] = None
     price_range: Optional[NumberRange] = None
-    ...
 
     def to_params(self) -> dict:
+        """Convert filter fields to query parameters."""
         return {
             "page": self.page,
             "Order": self.order_by,
@@ -38,9 +40,9 @@ class QueryFilters(BaseModel):
         }
 
     def to_clean_params(self):
+        """Return query parameters excluding None values."""
         return {key: value for key, value in self.to_params().items() if value is not None}
 
-    # TODO: add helper methods for managing the attribute values
-
     def __iter__(self):
+        """Allow iteration over the clean query parameters."""
         yield from self.to_clean_params().items()

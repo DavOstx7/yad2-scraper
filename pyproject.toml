@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "yad2-scraper"
-version = "0.5.0"
+version = "0.5.1"
 description = "Scrape Yad2 in Python."
 authors = ["dav ost <davidost2003@gmail.com>"]
 license = "LICENSE"

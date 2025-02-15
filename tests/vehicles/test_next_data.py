@@ -2,7 +2,6 @@ import pytest
 from typing import List, Tuple, Callable, Any
 
 from yad2_scraper.next_data import Field
-from yad2_scraper.vehicles.next_data import VehiclesNextData
 
 Method = Callable[[Field], Any]
 
@@ -10,6 +9,7 @@ Method = Callable[[Field], Any]
 @pytest.fixture
 def vehicle_data_public_methods(cars_next_data) -> List[Tuple[str, Method]]:
     methods = []
+
     for obj in cars_next_data.iterate_vehicles():
         for attribute_name in dir(obj):
             if attribute_name.startswith("_"):
@@ -26,6 +26,7 @@ def vehicle_data_public_methods(cars_next_data) -> List[Tuple[str, Method]]:
 @pytest.fixture
 def vehicle_data_public_properties(cars_next_data) -> List[Tuple[str, Any]]:
     properties = []
+
     for obj in cars_next_data.iterate_vehicles():
         for attribute_name in dir(obj):
             if attribute_name.startswith("_"):

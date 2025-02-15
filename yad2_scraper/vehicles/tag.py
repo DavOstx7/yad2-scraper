@@ -9,6 +9,8 @@ YEAR_AND_HAND_TAG_SEPARATOR = " • "
 
 
 class VehicleTag:
+    """Represents a vehicle listing on the webpage, providing access to various details"""
+
     def __init__(self, tag: Tag):
         self.tag = tag
 
