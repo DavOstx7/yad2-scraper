@@ -1,6 +1,53 @@
 import pytest
+import random
 
-from yad2_scraper.next_data import NextData
+from yad2_scraper.next_data import SafeAccessOptionalKeysMeta, NextData
+
+
+def test_safe_access_optional_keys_meta_no_exceptions():
+    class DummyClass(metaclass=SafeAccessOptionalKeysMeta):
+        def __init__(self):
+            self.data = {"key": "value"}
+
+        @property
+        def key_property(self):
+            return self.data["key"]
+
+        def key_method(self):
+            return self.data["key"]
+
+    obj = DummyClass()
+    assert obj.key_property is not None
+    assert obj.key_method() is not None
+
+
+def test_safe_access_optional_keys_meta_catch_relevant_exceptions():
+    class DummyClass(metaclass=SafeAccessOptionalKeysMeta):
+        def __init__(self):
+            self.data = {"key": "value"}
+
+        def key_error(self):
+            return self.data["non_existing_key"]
+
+        def type_error(self):
+            return self.data["key"]["foo"]
+
+    obj = DummyClass()
+    assert obj.key_error() is None
+    assert obj.type_error() is None
+
+
+def test_safe_access_optional_keys_meta_not_catch_other_exceptions():
+    class DummyClass(metaclass=SafeAccessOptionalKeysMeta):
+        def __init__(self):
+            self.data = {"not_a_dict": "value"}
+
+        def random_error(self):
+            raise random.choice([AttributeError, IndexError, ValueError])
+
+    obj = DummyClass()
+    with pytest.raises(Exception):
+        obj.random_error()
 
 
 def test_next_data_initialization():
