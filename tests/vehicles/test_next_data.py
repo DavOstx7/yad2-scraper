@@ -2,7 +2,6 @@ import pytest
 from typing import List, Tuple, Callable, Any
 
 from yad2_scraper.next_data import Field
-from yad2_scraper.vehicles.next_data import VehiclesNextData
 
 Method = Callable[[Field], Any]
 
