@@ -1,8 +1,10 @@
 # Yad2 Scraper
 
-A Python package for scraping listings from [Yad2](https://www.yad2.co.il/), Israel's leading classifieds
-platform. This package provides a simple and flexible interface to fetch data,
-filter results, and extract relevant information.
+A Python package for scraping listings from [Yad2](https://www.yad2.co.il/), Israel's leading classifieds platform.
+This package provides a simple and flexible interface to fetch data, filter results, and extract relevant information.
+
+__NOTE__: Currently, the package primarily supports the **vehicles category**.
+Support for additional categories may be added in future updates.
 
 ---
 
@@ -28,37 +30,35 @@ pip install yad2-scraper
 
 ### Fetching Category Listings
 
-To fetch any yad2 category, use the `fetch_category` function:
+To fetch any category, use the `fetch_category` function:
 
 ```python
 from yad2_scraper import fetch_category, Yad2Category
 
-# Fetch real estate listings
-real_estate_category_page1 = fetch_category("https://www.yad2.co.il/realestate/forsale", Yad2Category, page=1)
+# Fetch real estate category (returns a generic Yad2Category object)
+real_estate_category_page1 = fetch_category("https://www.yad2.co.il/realestate/forsale", page=1)
 ...
-real_estate_category_page2 = fetch_category("https://www.yad2.co.il/realestate/forsale", Yad2Category, page=2)
+real_estate_category_page2 = fetch_category("https://www.yad2.co.il/realestate/forsale", page=2)
 ...
 ```
-
-__NOTE__: Unfortunately, the current package mainly has support for the vehicle category.
 
 ### Fetching Vehicle Listings
 
 To fetch vehicle listings for a specific category, use the `fetch_vehicle_category` function:
 
 ```python
-from yad2_scraper import fetch_vehicle_category, OrderVehiclesBy
+from yad2_scraper import fetch_vehicle_category, OrderVehiclesBy, Field
 
-# Fetch car listings
+# Fetch cars category
 cars_category = fetch_vehicle_category("cars")
 
 for car_data in cars_category.load_next_data().iterate_vehicles():
-    print(car_data.model())
+    print(car_data.model(Field.ENGLISH_TEXT))
     print(car_data.test_date)
     print(car_data.price)
     ...
 
-# Fetch motorcycle listings with filters
+# Fetch motorcycles category
 motorcycle_categories = fetch_vehicle_category(
     "motorcycles",
     price_range=(5000, 15000),
@@ -71,33 +71,6 @@ for motorcycle_tag in motorcycle_categories.get_vehicle_tags():
     print(motorcycle_tag.hand)
     print(motorcycle_tag.price)
     ...
-```
-
-#### Generating Vehicle URLs
-
-To generate a URL for a specific vehicle category, use the `get_vehicle_category_url` function:
-
-```python
-from yad2_scraper import get_vehicle_category_url, VehicleCategory
-
-# Get URL for car listings
-car_url = get_vehicle_category_url(VehicleCategory.CARS)
-print(car_url)  # Output: https://www.yad2.co.il/vehicles/cars
-```
-
-#### Using Filters
-
-Apply filters to refine your search results:
-
-```python
-from yad2_scraper import fetch_vehicle_category
-
-# Fetch truck listings with price and year filters
-truck_listings = fetch_vehicle_category(
-    "trucks",
-    price_range=(20000, 50000),
-    year_range=(2015, 2022)
-)
 ```
 
 ### The Scraper Object
@@ -113,56 +86,42 @@ You can create a `Yad2Scraper` instance manually or use the default scraper prov
 from yad2_scraper import Yad2Scraper, get_default_scraper
 
 # Create a custom scraper instance
-scraper = Yad2Scraper(request_defaults={"timeout": 10}, randomize_user_agent=True, ...)
+scraper = Yad2Scraper()
 
 # Use the default scraper
 default_scraper = get_default_scraper()
 ```
 
-#### Fetching Listings
+#### Fetching Category Listings
 
 The `fetch_category` method is used to fetch listings for a specific category.
 It takes a URL, a `Category` type, and optionally query params as arguments:
 
 ```python
-from yad2_scraper import Yad2Scraper, Yad2VehiclesCategory, VehiclesQueryFilters
-
-# Fetch cars category
-scraper = Yad2Scraper()
-cars_category = scraper.fetch_category("https://www.yad2.co.il/vehicles/cars", Yad2VehiclesCategory, )
-```
-
-#### Applying Filters
-
-You can pass `QueryFilters` or `VehiclesQueryFilters` to the `fetch_category` method to apply filters:
-
-```python
-from yad2_scraper import Yad2Scraper, Yad2VehiclesCategory, VehiclesQueryFilters, OrderVehiclesBy
-
-# Fetch motorcycles category with filters
-scraper = Yad2Scraper()
-query_filters = VehiclesQueryFilters(
-    price_range=(5000, 15000),
-    year_range=(2010, 2020),
-    order_by=OrderVehiclesBy.PRICE_HIGHEST_TO_LOWEST
-)
-motorcycle_listings = scraper.fetch_category(
-    "https://www.yad2.co.il/vehicles/motorcycles",
+from yad2_scraper import Yad2Scraper, Yad2Category, QueryFilters, OrderBy
+from yad2_scraper.vehicles import (
     Yad2VehiclesCategory,
-    params=query_filters
+    VehiclesQueryFilters,
+    OrderVehiclesBy,
+    get_vehicle_category_url
 )
+
+# Fetch businesses for sale category with filters
+scraper = Yad2Scraper()
+url = "https://www.yad2.co.il/products/businesses-for-sale"
+query_filters = QueryFilters(price_range=(10000, 250000), order_by=OrderBy.PRICE_LOWEST_TO_HIGHEST)
+real_estate_category = scraper.fetch_category(url, Yad2Category, params=query_filters)
+
+# Fetch watercraft (vehicle) category with filters
+url = get_vehicle_category_url("watercraft")
+query_filters = VehiclesQueryFilters(year_range=(2010, 2020), order_by=OrderVehiclesBy.DATE)
+watercraft_category = scraper.fetch_category(url, Yad2VehiclesCategory, params=query_filters)
 ```
 
-#### Using the Default Scraper
+#### Attributes & Methods
 
-The package provides a default scraper instance that you can use without creating a new `Yad2Scraper` object:
-
-```python
-from yad2_scraper import get_default_scraper
-
-# Use the default scraper
-default_scraper = get_default_scraper()
-```
+The `Yad2Scraper` object contains a lot of additional attributes & methods which you can use.
+Please check out the actual code documentation for more details.
 
 ## Contributing
 

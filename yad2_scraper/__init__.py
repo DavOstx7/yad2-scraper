@@ -3,7 +3,7 @@ from typing import Optional, Type
 from .scraper import Yad2Scraper, Category
 from .query import QueryFilters, OrderBy, NumberRange
 from .category import Yad2Category
-from .next_data import NextData
+from .next_data import NextData, Field
 from .utils import any_param_specified
 from .vehicles import (
     Yad2VehiclesCategory,
