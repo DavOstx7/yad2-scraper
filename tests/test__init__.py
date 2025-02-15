@@ -32,8 +32,8 @@ def mock_any_param_specified():
 
 
 @pytest.fixture
-def mock_get_vehicle_url():
-    with patch("yad2_scraper.get_vehicle_url") as mock:
+def mock_get_vehicle_category_url():
+    with patch("yad2_scraper.get_vehicle_category_url") as mock:
         yield mock
 
 
@@ -91,11 +91,11 @@ def test_fetch_vehicle_category_with_params(
         mock_scraper,
         mock_vehicles_category,
         mock_any_param_specified,
-        mock_get_vehicle_url
+        mock_get_vehicle_category_url
 ):
     mock_any_param_specified.return_value = True
-    mock_get_vehicle_url.return_value = "http://example.com/vehicles"
-    vehicle_type = "cars"
+    mock_get_vehicle_category_url.return_value = "http://example.com/vehicles"
+    vehicle_category = "cars"
     page = 1
     order_by = OrderVehiclesBy.PRICE_LOWEST_TO_HIGHEST
     price_range = 1000, 5000
@@ -103,7 +103,7 @@ def test_fetch_vehicle_category_with_params(
 
     with patch("yad2_scraper.get_default_scraper", return_value=mock_scraper):
         fetch_vehicle_category(
-            vehicle_type,
+            vehicle_category,
             page=page, order_by=order_by, price_range=price_range, year_range=year_range
         )
 
@@ -118,14 +118,14 @@ def test_fetch_vehicle_category_without_params(
         mock_scraper,
         mock_vehicles_category,
         mock_any_param_specified,
-        mock_get_vehicle_url
+        mock_get_vehicle_category_url
 ):
     mock_any_param_specified.return_value = False
-    mock_get_vehicle_url.return_value = "http://example.com/vehicles"
-    vehicle_type = "cars"
+    mock_get_vehicle_category_url.return_value = "http://example.com/vehicles"
+    vehicle_category = "cars"
 
     with patch("yad2_scraper.get_default_scraper", return_value=mock_scraper):
-        fetch_vehicle_category(vehicle_type)
+        fetch_vehicle_category(vehicle_category)
 
         mock_scraper.fetch_category.assert_called_once_with(
             "http://example.com/vehicles",

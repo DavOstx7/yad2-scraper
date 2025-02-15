@@ -5,13 +5,15 @@ from yad2_scraper.constants import BASE_URL
 
 VEHICLES_URL = join_url(BASE_URL, "vehicles")
 
-VehicleType = Literal["cars", "motorcycles", "scooters", "trucks", "watercraft", "others"]
+VehicleCategory = Literal["cars", "motorcycles", "scooters", "trucks", "watercraft", "others"]
 
-_VALID_VEHICLE_TYPES = get_args(VehicleType)
+_VALID_VEHICLE_CATEGORIES = get_args(VehicleCategory)
 
 
-def get_vehicle_url(vehicle_type: VehicleType) -> str:
-    if vehicle_type not in _VALID_VEHICLE_TYPES:
-        raise ValueError(f"Invalid vehicle type: {repr(vehicle_type)}. Expected one of {_VALID_VEHICLE_TYPES}")
+def get_vehicle_category_url(vehicle_category: VehicleCategory) -> str:
+    if vehicle_category not in _VALID_VEHICLE_CATEGORIES:
+        raise ValueError(
+            f"Invalid vehicle category: {repr(vehicle_category)}. Expected one of {_VALID_VEHICLE_CATEGORIES}"
+        )
 
-    return join_url(VEHICLES_URL, vehicle_type)
+    return join_url(VEHICLES_URL, vehicle_category)

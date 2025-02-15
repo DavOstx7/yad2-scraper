@@ -22,4 +22,4 @@ class VehiclesQueryFilters(QueryFilters):
             "year": format_number_range(self.year_range)
         }
 
-# TODO: add QueryParams class for each vehicle type (some share the same attributes - sometimes with different enums)
+# TODO: add QueryParams class for each vehicle category (some share the same attributes, sometimes with different enums)

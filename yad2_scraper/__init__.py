@@ -9,8 +9,8 @@ from .vehicles import (
     Yad2VehiclesCategory,
     VehiclesQueryFilters,
     OrderVehiclesBy,
-    VehicleType,
-    get_vehicle_url
+    VehicleCategory,
+    get_vehicle_category_url
 )
 
 _default_scraper = None
@@ -42,7 +42,7 @@ def fetch_category(
 
 
 def fetch_vehicle_category(
-        vehicle_type: VehicleType,
+        vehicle_category: VehicleCategory,
         page: Optional[int] = None,
         order_by: Optional[OrderVehiclesBy] = None,
         price_range: [NumberRange] = None,
@@ -53,6 +53,6 @@ def fetch_vehicle_category(
     else:
         params = None
 
-    vehicle_url = get_vehicle_url(vehicle_type)
+    url = get_vehicle_category_url(vehicle_category)
     default_scraper = get_default_scraper()
-    return default_scraper.fetch_category(vehicle_url, Yad2VehiclesCategory, params=params)
+    return default_scraper.fetch_category(url, Yad2VehiclesCategory, params=params)
