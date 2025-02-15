@@ -13,4 +13,5 @@ _VALID_VEHICLE_TYPES = get_args(VehicleType)
 def get_vehicle_url(vehicle_type: VehicleType) -> str:
     if vehicle_type not in _VALID_VEHICLE_TYPES:
         raise ValueError(f"Invalid vehicle type: {repr(vehicle_type)}. Expected one of {_VALID_VEHICLE_TYPES}")
+
     return join_url(VEHICLES_URL, vehicle_type)
