@@ -56,7 +56,7 @@ class Yad2Scraper:
     def fetch_category(
             self,
             url: str,
-            category_type: Type[Category] = Yad2Category,
+            category_type: Type[Category],
             params: Optional[QueryParamTypes] = None
     ) -> Category:
         logger.debug(f"Fetching category from URL: '{url}'")
