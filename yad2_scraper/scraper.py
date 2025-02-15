@@ -41,8 +41,13 @@ class Yad2Scraper:
         self.randomize_user_agent = randomize_user_agent
         self.wait_strategy = wait_strategy
         self.max_request_attempts = max_request_attempts
+        self._request_count = 0
 
         logger.debug(f"Scraper initialized with client: {self.client}")
+
+    @property
+    def request_count(self) -> int:
+        return self._request_count
 
     def set_user_agent(self, user_agent: str) -> None:
         self.client.headers["User-Agent"] = user_agent
@@ -105,6 +110,7 @@ class Yad2Scraper:
 
         logger.info(f"Sending {method} request to URL: '{url}' {self._format_attempt_info(attempt)}")
         response = self.client.request(method, url, **request_options)
+        self._request_count += 1
         logger.debug(f"Received response {response.status_code} from '{url}' {self._format_attempt_info(attempt)}")
         self._validate_response(response)
 
