@@ -1,13 +1,19 @@
 import itertools
 from datetime import datetime
-from typing import List, Any, Iterator
+from typing import List, Any, Iterator, Optional
 
-from yad2_scraper.next_data import NextData, Field, FieldTypes, convert_string_date_to_datetime
+from yad2_scraper.next_data import (
+    SafeAccessOptionalKeysMeta,
+    NextData,
+    Field,
+    FieldTypes,
+    convert_string_date_to_datetime
+)
 from yad2_scraper.utils import join_url
 from yad2_scraper.vehicles.urls import VEHICLES_URL
 
 
-class VehicleData:
+class VehicleData(metaclass=SafeAccessOptionalKeysMeta):
     def __init__(self, data: dict):
         self.data = data
 
@@ -39,18 +45,18 @@ class VehicleData:
     def address(self) -> dict:
         return self["address"]
 
-    def top_area(self, field: Field = Field.TEXT) -> FieldTypes:
+    def top_area(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["address"]["topArea"][field]
 
-    def area(self, field: Field = Field.TEXT) -> FieldTypes:
+    def area(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["address"]["area"][field]
 
-    def city(self, field: Field = Field.TEXT) -> FieldTypes:
+    def city(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["address"]["city"][field]
 
     @property
     def metadata(self) -> dict:
-        return self["metadata"]
+        return self["metaData"]
 
     @property
     def video(self) -> str:
@@ -88,34 +94,34 @@ class VehicleData:
     def rebounced_at(self) -> datetime:
         return convert_string_date_to_datetime(self.dates["rebouncedAt"])
 
-    def manufacturer(self, field: Field = Field.TEXT) -> FieldTypes:
+    def manufacturer(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["manufacturer"][field]
 
-    def color(self, field: Field = Field.TEXT) -> FieldTypes:
+    def color(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["color"][field]
 
     @property
-    def km(self) -> int:
+    def km(self) -> Optional[int]:
         return self["km"]
 
     @property
-    def hand(self, field: Field = Field.ID) -> FieldTypes:
+    def hand(self, field: Field = Field.ID) -> Optional[FieldTypes]:
         return self["hand"][field]
 
     @property
-    def engine_volume(self) -> int:
+    def engine_volume(self) -> Optional[int]:
         return self["engineVolume"]
 
     @property
-    def horse_power(self) -> int:
+    def horse_power(self) -> Optional[int]:
         return self["horsePower"]
 
     @property
-    def previous_owner(self, field: Field = Field.TEXT) -> FieldTypes:
+    def previous_owner(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["previousOwner"][field]
 
     @property
-    def above_price(self) -> int:
+    def above_price(self) -> Optional[int]:
         return self["abovePrice"]
 
     @property
@@ -123,7 +129,7 @@ class VehicleData:
         return self["tags"]
 
     @property
-    def is_contact_lead_supported(self) -> bool:
+    def is_contact_lead_supported(self) -> Optional[bool]:
         return self["isContactLeadSupported"]
 
     @property
@@ -131,166 +137,166 @@ class VehicleData:
         return self["vehicleDates"]
 
     @property
-    def year_of_production(self) -> int:
+    def year_of_production(self) -> Optional[int]:
         return self.vehicle_dates["yearOfProduction"]
 
     @property
-    def month_of_production(self) -> int:
+    def month_of_production(self) -> Optional[int]:
         return self.vehicle_dates["monthOfProduction"]["id"]
 
     @property
-    def test_date(self) -> datetime:
+    def test_date(self) -> Optional[datetime]:
         return convert_string_date_to_datetime(self.vehicle_dates["testDate"])
 
-    def model(self, field: Field = Field.TEXT) -> FieldTypes:
+    def model(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["model"][field]
 
     @property
-    def sub_model(self) -> str:
+    def sub_model(self) -> Optional[str]:
         return self["subModel"]
 
-    def gear_box(self, field: Field = Field.TEXT) -> FieldTypes:
+    def gear_box(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["gearBox"][field]
 
-    def car_family_types(self, field: Field = Field.TEXT) -> List[FieldTypes]:
+    def car_family_types(self, field: Field = Field.TEXT) -> Optional[List[FieldTypes]]:
         return [obj[field] for obj in self["carFamilyType"]]
 
-    def engine_type(self, field: Field = Field.TEXT) -> FieldTypes:
+    def engine_type(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
         return self["engineType"][field]
 
     @property
-    def seats(self) -> int:
+    def seats(self) -> Optional[int]:
         return self["seats"]
 
     @property
-    def number_of_doors(self) -> int:
+    def number_of_doors(self) -> Optional[int]:
         return self["numberOfDoors"]
 
     @property
-    def owner(self) -> str:
+    def owner(self) -> Optional[str]:
         return self["owner"]["text"]
 
     @property
-    def body_type(self) -> str:
+    def body_type(self) -> Optional[str]:
         return self["bodyType"]["text"]
 
     @property
-    def combined_fuel_consumption(self) -> float:
+    def combined_fuel_consumption(self) -> Optional[float]:
         return self["combinedFuelConsumption"]
 
     @property
-    def power_train_architecture(self) -> str:
+    def power_train_architecture(self) -> Optional[str]:
         return self["powertrainArchitecture"]
 
-    def car_tags(self, field: Field = Field.TEXT) -> List[FieldTypes]:
+    def car_tags(self, field: Field = Field.TEXT) -> Optional[List[FieldTypes]]:
         return [obj[field] for obj in self["carTag"]]
 
     @property
-    def specifications(self) -> dict:
-        return self["specifications"]
+    def specification(self) -> dict:
+        return self["specification"]
 
     @property
-    def has_air_conditioner(self) -> bool:
-        return self.specifications["airConditioner"]
+    def has_air_conditioner(self) -> Optional[bool]:
+        return self.specification["airConditioner"]
 
     @property
-    def has_power_steering(self) -> bool:
-        return self.specifications["powerSteering"]
+    def has_power_steering(self) -> Optional[bool]:
+        return self.specification["powerSteering"]
 
     @property
-    def has_magnesium_wheel(self) -> bool:
-        return self.specifications["magnesiumWheel"]
+    def has_magnesium_wheel(self) -> Optional[bool]:
+        return self.specification["magnesiumWheel"]
 
     @property
-    def has_tire_pressure_monitoring_system(self) -> bool:
-        return self.specifications["tirePressureMonitoringSystem"]
+    def has_tire_pressure_monitoring_system(self) -> Optional[bool]:
+        return self.specification["tirePressureMonitoringSystem"]
 
     @property
-    def has_abs(self) -> bool:
-        return self.specifications["abs"]
+    def has_abs(self) -> Optional[bool]:
+        return self.specification["abs"]
 
     @property
-    def air_bags(self) -> int:
-        return self.specifications["airBags"]
+    def air_bags(self) -> Optional[int]:
+        return self.specification["airBags"]
 
     @property
-    def has_control_stability(self) -> bool:
-        return self.specifications["controlStability"]
+    def has_control_stability(self) -> Optional[bool]:
+        return self.specification["controlStability"]
 
     @property
-    def has_electric_window(self) -> int:
-        return self.specifications["electricWindow"]
+    def has_electric_window(self) -> Optional[int]:
+        return self.specification["electricWindow"]
 
     @property
-    def has_breaking_assist_system(self) -> bool:
-        return self.specifications["breakingAssistSystem"]
+    def has_breaking_assist_system(self) -> Optional[bool]:
+        return self.specification["breakingAssistSystem"]
 
     @property
-    def has_reverse_camera(self) -> bool:
-        return self.specifications["reverseCamera"]
+    def has_reverse_camera(self) -> Optional[bool]:
+        return self.specification["reverseCamera"]
 
     @property
-    def has_adaptive_cruise_control(self) -> bool:
-        return self.specifications["adaptiveCruiseControl"]
+    def has_adaptive_cruise_control(self) -> Optional[bool]:
+        return self.specification["adaptiveCruiseControl"]
 
     @property
-    def has_high_beams_auto_control(self) -> bool:
-        return self.specifications["highBeamsAutoControl"]
+    def has_high_beams_auto_control(self) -> Optional[bool]:
+        return self.specification["highBeamsAutoControl"]
 
     @property
-    def has_blind_spot_assist(self) -> bool:
-        return self.specifications["blindSpotAssist"]
+    def has_blind_spot_assist(self) -> Optional[bool]:
+        return self.specification["blindSpotAssist"]
 
     @property
-    def has_identify_pedestrians(self) -> bool:
-        return self.specifications["identifyPedestrians"]
+    def has_identify_pedestrians(self) -> Optional[bool]:
+        return self.specification["identifyPedestrians"]
 
     @property
-    def has_seat_belts_sensors(self) -> bool:
-        return self.specifications["seatBeltsSensors"]
+    def has_seat_belts_sensors(self) -> Optional[bool]:
+        return self.specification["seatBeltsSensors"]
 
     @property
-    def has_identifying_dangerous_nearing(self) -> bool:
-        return self.specifications["identifyingDangerousNearing"]
+    def has_identifying_dangerous_nearing(self) -> Optional[bool]:
+        return self.specification["identifyingDangerousNearing"]
 
     @property
-    def has_auto_lighting_in_forward(self) -> bool:
-        return self.specifications["autoLightingInForward"]
+    def has_auto_lighting_in_forward(self) -> Optional[bool]:
+        return self.specification["autoLightingInForward"]
 
     @property
-    def has_identify_traffic_signs(self) -> bool:
-        return self.specifications["identifyTrafficSigns"]
+    def has_identify_traffic_signs(self) -> Optional[bool]:
+        return self.specification["identifyTrafficSigns"]
 
-    def ignition(self, field: Field.TEXT) -> FieldTypes:
-        return self.specifications[field]
-
-    @property
-    def safety_points(self) -> int:
-        return self.specifications["safetyPoints"]
+    def ignition(self, field: Field = Field.TEXT) -> Optional[FieldTypes]:
+        return self.specification["ignition"][field]
 
     @property
-    def is_handicapped_friendly(self) -> bool:
-        return self.specifications["isHandicappedFriendly"]
+    def safety_points(self) -> Optional[int]:
+        return self.specification["safetyPoints"]
 
     @property
-    def has_sun_roof(self) -> bool:
-        return self.specifications["sunRoof"]
+    def is_handicapped_friendly(self) -> Optional[bool]:
+        return self.specification["isHandicappedFriendly"]
 
     @property
-    def is_turbo(self) -> bool:
-        return self.specifications["isTurbo"]
+    def has_sun_roof(self) -> Optional[bool]:
+        return self.specification["sunRoof"]
 
     @property
-    def has_road_deviation_control(self) -> bool:
-        return self.specifications["roadDeviationControl"]
+    def is_turbo(self) -> Optional[bool]:
+        return self.specification["isTurbo"]
 
     @property
-    def has_forward_distance_monitor(self) -> bool:
-        return self.specifications["forwardDistanceMonitor"]
+    def has_road_deviation_control(self) -> Optional[bool]:
+        return self.specification["roadDeviationControl"]
 
     @property
-    def has_box(self) -> bool:
-        return self.specifications["box"]
+    def has_forward_distance_monitor(self) -> Optional[bool]:
+        return self.specification["forwardDistanceMonitor"]
+
+    @property
+    def has_box(self) -> Optional[bool]:
+        return self.specification["box"]
 
     def __getitem__(self, key: str) -> Any:
         return self.data[key]
