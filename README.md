@@ -110,7 +110,7 @@ from yad2_scraper.vehicles import (
 scraper = Yad2Scraper()
 url = "https://www.yad2.co.il/products/businesses-for-sale"
 query_filters = QueryFilters(price_range=(10000, 250000), order_by=OrderBy.PRICE_LOWEST_TO_HIGHEST)
-real_estate_category = scraper.fetch_category(url, Yad2Category, params=query_filters)
+business_for_sale_category = scraper.fetch_category(url, Yad2Category, params=query_filters)
 
 # Fetch watercraft (vehicle) category with filters
 url = get_vehicle_category_url("watercraft")
