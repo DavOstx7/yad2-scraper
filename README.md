@@ -106,22 +106,23 @@ from yad2_scraper.vehicles import (
     get_vehicle_category_url
 )
 
-# Fetch businesses for sale category with filters
-scraper = Yad2Scraper()
+scraper = Yad2Scraper(request_defaults={"timeout": 5}, max_request_attempts=3)
+
+# Fetch businesses-for-sale category with filters
 url = "https://www.yad2.co.il/products/businesses-for-sale"
 query_filters = QueryFilters(price_range=(10000, 250000), order_by=OrderBy.PRICE_LOWEST_TO_HIGHEST)
 business_for_sale_category = scraper.fetch_category(url, Yad2Category, params=query_filters)
 
-# Fetch watercraft (vehicle) category with filters
+# Fetch watercraft category with filters
 url = get_vehicle_category_url("watercraft")
 query_filters = VehiclesQueryFilters(year_range=(2010, 2020), order_by=OrderVehiclesBy.DATE)
 watercraft_category = scraper.fetch_category(url, Yad2VehiclesCategory, params=query_filters)
 ```
 
-#### Attributes & Methods
+#### Features & Functionality
 
-The `Yad2Scraper` object contains a lot of additional attributes & methods which you can use.
-Please check out the actual code documentation for more details.
+The `Yad2Scraper` class provides various attributes and methods to customize and extend its functionality.
+For detailed usage and examples, refer to the code documentation.
 
 ## Contributing
 
