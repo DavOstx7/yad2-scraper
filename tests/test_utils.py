@@ -14,12 +14,12 @@ from yad2_scraper.utils import (
 @pytest.mark.parametrize(
     "args",
     [
-        (1, None, "1"),
+        ("1", None, 1),
         (None, 1),
         (0,),
     ],
 )
-def test_any_param_specified_false(args):
+def test_any_param_specified_true(args):
     assert any_param_specified(*args)
 
 
@@ -31,7 +31,7 @@ def test_any_param_specified_false(args):
         (None, None, None),
     ],
 )
-def test_any_param_specified_true(args):
+def test_any_param_specified_false(args):
     assert not any_param_specified(*args)
 
 
@@ -127,7 +127,7 @@ def test_safe_access_no_exception(to_call, exceptions, expected):
         (lambda: 1 / 0, (ZeroDivisionError,), 0),
     ],
 )
-def test_safe_access_catch_exception(to_call, exceptions, default):
+def test_safe_access_catches_exception(to_call, exceptions, default):
     @safe_access(exceptions=exceptions, default=default)
     def to_call_wrapper():
         return to_call()
@@ -143,7 +143,7 @@ def test_safe_access_catch_exception(to_call, exceptions, default):
         (lambda: 1 / 0, (KeyError, IndexError), ZeroDivisionError),
     ],
 )
-def test_safe_access_not_catch_other_exceptions(to_call, exceptions, expected_exception):
+def test_safe_access_not_catches_other_exceptions(to_call, exceptions, expected_exception):
     @safe_access(exceptions=exceptions)
     def to_call_wrapper():
         return to_call()

@@ -21,7 +21,7 @@ def test_safe_access_optional_keys_meta_no_exceptions():
     assert obj.key_method() is not None
 
 
-def test_safe_access_optional_keys_meta_catch_relevant_exceptions():
+def test_safe_access_optional_keys_meta_catches_relevant_exceptions():
     class DummyClass(metaclass=SafeAccessOptionalKeysMeta):
         def __init__(self):
             self.data = {"key": "value"}
@@ -37,7 +37,7 @@ def test_safe_access_optional_keys_meta_catch_relevant_exceptions():
     assert obj.type_error() is None
 
 
-def test_safe_access_optional_keys_meta_not_catch_other_exceptions():
+def test_safe_access_optional_keys_meta_not_catches_other_exceptions():
     class DummyClass(metaclass=SafeAccessOptionalKeysMeta):
         def __init__(self):
             self.data = {"not_a_dict": "value"}

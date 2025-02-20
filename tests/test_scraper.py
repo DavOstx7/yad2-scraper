@@ -99,7 +99,7 @@ def test_get_request_with_multiple_attempts(scraper, mock_http):
 
     _assert_success_response(response)
 
-def test_get_request_increment_counter(scraper, mock_http):
+def test_get_request_increments_counter(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).return_value = _create_success_response()
     request_count = random.randint(1, 3)
