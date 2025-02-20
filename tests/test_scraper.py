@@ -50,6 +50,18 @@ def test_get_request_with_params(scraper, mock_http):
     assert b"key=value" in response.request.url.query
 
 
+def test_get_request_with_request_defaults(scraper, mock_http):
+    url = "https://example.com"
+    kwargs = {"headers": {"Content-Type": "Test"}, "params": {"key": "value"}, "timeout": 1}
+    scraper.request_defaults = kwargs
+    scraper.randomize_user_agent = False
+
+    with patch.object(scraper.client, "request") as mock_request:
+        response = scraper.get(url)
+        mock_request.assert_called_once_with("GET", url, **kwargs)
+        assert response == mock_request.return_value
+
+
 def test_get_request_with_random_user_agent(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).return_value = _create_success_response()
@@ -126,8 +138,8 @@ def test_get_request_unexpected_content_error(scraper, mock_http):
 def test_get_request_max_attempts_type_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).side_effect = httpx.RequestError("Request failed")
-
     scraper.max_request_attempts = "invalid_type"
+
     with pytest.raises(TypeError):
         scraper.get(url)
 
@@ -135,8 +147,8 @@ def test_get_request_max_attempts_type_error(scraper, mock_http):
 def test_get_request_max_attempts_value_error(scraper, mock_http):
     url = "https://example.com"
     mock_http.get(url).side_effect = httpx.RequestError("Request failed")
-
     scraper.max_request_attempts = -3
+
     with pytest.raises(ValueError):
         scraper.get(url)
 
