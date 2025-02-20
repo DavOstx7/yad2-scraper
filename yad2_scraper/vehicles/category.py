@@ -7,8 +7,9 @@ from yad2_scraper.vehicles.next_data import VehiclesNextData
 
 class Yad2VehiclesCategory(Yad2Category):
     """Represents a Yad2 vehicles category parsed from an HTML page."""
-    def get_vehicle_tags(self) -> List[VehicleTag]:
-        """Retrieve a and return list of vehicle tags from the current category."""
+
+    def get_tags(self) -> List[VehicleTag]:
+        """Retrieve and return a list of tags from the current vehicle page."""
         tags = self.find_all_tags_by_class_substring("div", "feedItemBox")
         return [VehicleTag(tag) for tag in tags]
 

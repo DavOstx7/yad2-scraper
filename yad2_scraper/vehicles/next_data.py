@@ -307,8 +307,10 @@ class VehicleData(metaclass=SafeAccessOptionalKeysMeta):
 class VehiclesNextData(NextData):
     """Represents structured Next.js data of a specific vehicle category."""
 
-    def iterate_vehicles(self) -> Iterator[VehicleData]:
-        """Iterates through the queries and yields `VehicleData` objects."""
+    def get_data(self) -> List[VehicleData]:
+        """Extract and return a list of vehicle-data objects from the stored queries."""
+        data_list = []
+
         for query in self.queries:
             data = query["state"].get("data")
 
@@ -317,4 +319,6 @@ class VehiclesNextData(NextData):
 
             for vehicle_data in itertools.chain.from_iterable(data.values()):
                 if isinstance(vehicle_data, dict):
-                    yield VehicleData(vehicle_data)
+                    data_list.append(VehicleData(vehicle_data))
+
+        return data_list

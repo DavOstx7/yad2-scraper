@@ -8,13 +8,14 @@ from yad2_scraper.vehicles import Yad2VehiclesCategory, VehicleTag, VehiclesNext
 @pytest.fixture(scope="session")
 def cars_category() -> Yad2VehiclesCategory:
     html_path = Path(__file__).parent.parent / "data" / "cars_category.html"
+
     with html_path.open("rb") as file:
         return Yad2VehiclesCategory.from_html_io(file)
 
 
 @pytest.fixture(scope="session")
 def cars_tags(cars_category) -> List[VehicleTag]:
-    return cars_category.get_vehicle_tags()
+    return cars_category.get_tags()
 
 
 @pytest.fixture(scope="session")

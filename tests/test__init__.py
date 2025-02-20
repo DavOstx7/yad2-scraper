@@ -21,11 +21,6 @@ def mock_category():
 
 
 @pytest.fixture
-def mock_vehicles_category():
-    return MagicMock(spec=Yad2VehiclesCategory)
-
-
-@pytest.fixture
 def mock_any_param_specified():
     with patch("yad2_scraper.any_param_specified") as mock:
         yield mock
@@ -89,7 +84,6 @@ def test_fetch_category_without_params(mock_scraper, mock_category, mock_any_par
 # Tests for fetch_vehicle_category
 def test_fetch_vehicle_category_with_params(
         mock_scraper,
-        mock_vehicles_category,
         mock_any_param_specified,
         mock_get_vehicle_category_url
 ):
@@ -116,7 +110,6 @@ def test_fetch_vehicle_category_with_params(
 
 def test_fetch_vehicle_category_without_params(
         mock_scraper,
-        mock_vehicles_category,
         mock_any_param_specified,
         mock_get_vehicle_category_url
 ):

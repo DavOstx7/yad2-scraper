@@ -36,9 +36,9 @@ To fetch any category, use the `fetch_category` function:
 from yad2_scraper import fetch_category, Yad2Category
 
 # Fetch real estate category (returns a generic Yad2Category object)
-real_estate_category_page1 = fetch_category("https://www.yad2.co.il/realestate/forsale", page=1)
+real_estate_page1 = fetch_category("https://www.yad2.co.il/realestate/forsale", page=1)
 ...
-real_estate_category_page2 = fetch_category("https://www.yad2.co.il/realestate/forsale", page=2)
+real_estate_page2 = fetch_category("https://www.yad2.co.il/realestate/forsale", page=2)
 ...
 ```
 
@@ -52,21 +52,21 @@ from yad2_scraper import fetch_vehicle_category, OrderVehiclesBy, Field
 # Fetch cars category
 cars_category = fetch_vehicle_category("cars")
 
-for car_data in cars_category.load_next_data().iterate_vehicles():
+for car_data in cars_category.load_next_data().get_data():
     print(car_data.model(Field.ENGLISH_TEXT))
     print(car_data.test_date)
     print(car_data.price)
     ...
 
 # Fetch motorcycles category
-motorcycle_categories = fetch_vehicle_category(
+motorcycle_category = fetch_vehicle_category(
     "motorcycles",
     price_range=(5000, 15000),
     year_range=(2010, 2020),
     order_by=OrderVehiclesBy.PRICE_LOWEST_TO_HIGHEST
 )
 
-for motorcycle_tag in motorcycle_categories.get_vehicle_tags():
+for motorcycle_tag in motorcycle_category.get_tags():
     print(motorcycle_tag.page_link)
     print(motorcycle_tag.hand)
     print(motorcycle_tag.price)
@@ -111,7 +111,7 @@ scraper = Yad2Scraper(request_defaults={"timeout": 5}, max_request_attempts=3)
 # Fetch businesses-for-sale category with filters
 url = "https://www.yad2.co.il/products/businesses-for-sale"
 query_filters = QueryFilters(price_range=(10000, 250000), order_by=OrderBy.PRICE_LOWEST_TO_HIGHEST)
-business_for_sale_category = scraper.fetch_category(url, Yad2Category, params=query_filters)
+businesses_for_sale_category = scraper.fetch_category(url, Yad2Category, params=query_filters)
 
 # Fetch watercraft category with filters
 url = get_vehicle_category_url("watercraft")
