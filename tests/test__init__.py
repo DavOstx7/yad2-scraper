@@ -109,7 +109,7 @@ def test_fetch_vehicle_category_with_params(
 
         mock_scraper.fetch_category.assert_called_once_with(
             "http://example.com/vehicles",
-            Yad2VehiclesCategory,
+            mock_vehicles_category,
             params=VehiclesQueryFilters(page=page, order_by=order_by, price_range=price_range, year_range=year_range)
         )
 
@@ -129,6 +129,6 @@ def test_fetch_vehicle_category_without_params(
 
         mock_scraper.fetch_category.assert_called_once_with(
             "http://example.com/vehicles",
-            Yad2VehiclesCategory,
+            mock_vehicles_category,
             params=None
         )

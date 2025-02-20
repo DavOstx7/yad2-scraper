@@ -10,7 +10,7 @@ Method = Callable[[Field], Any]
 def vehicle_data_public_methods(cars_next_data) -> List[Tuple[str, Method]]:
     methods = []
 
-    for obj in cars_next_data.iterate_vehicles():
+    for obj in cars_next_data.get_data():
         for attribute_name in dir(obj):
             if attribute_name.startswith("_"):
                 continue
@@ -27,7 +27,7 @@ def vehicle_data_public_methods(cars_next_data) -> List[Tuple[str, Method]]:
 def vehicle_data_public_properties(cars_next_data) -> List[Tuple[str, Any]]:
     properties = []
 
-    for obj in cars_next_data.iterate_vehicles():
+    for obj in cars_next_data.get_data():
         for attribute_name in dir(obj):
             if attribute_name.startswith("_"):
                 continue
